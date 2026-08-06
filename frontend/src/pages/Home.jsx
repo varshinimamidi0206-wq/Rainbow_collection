@@ -61,70 +61,7 @@ export default function Home({ setView, setSelectedCategory, apiBaseUrl }) {
         <span className="floating-ornament" style={{ right: '15px', top: '6px' }}>✨</span>
       </div>
 
-      {/* Main Logo & Intro Screen Section */}
-      <div style={{
-        padding: '32px 20px',
-        textAlign: 'center',
-        background: 'radial-gradient(circle, #FFF0F3 0%, #FFFFFF 100%)',
-        borderBottom: '1px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
-      }}>
-        {/* LOGO */}
-        <div style={{
-          width: '70px',
-          height: '70px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, var(--primary-pink), var(--secondary-pink))',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          boxShadow: 'var(--shadow-md)',
-          border: '3px solid var(--accent-gold)',
-          marginBottom: '14px',
-          animation: 'float 3s ease-in-out infinite'
-        }}>
-          <span style={{ fontSize: '32px' }}>💍</span>
-        </div>
 
-        <h1 style={{
-          fontFamily: 'Quicksand, sans-serif',
-          fontSize: '28px',
-          fontWeight: '700',
-          color: 'var(--primary-pink)',
-          letterSpacing: '1px',
-          marginBottom: '2px'
-        }}>
-          RAINBOW COLLECTION
-        </h1>
-
-        <p style={{
-          fontSize: '14px',
-          fontWeight: '600',
-          color: 'var(--accent-gold)',
-          letterSpacing: '1px',
-          marginBottom: '20px'
-        }}>
-          ✨ Fashion Jewellery Store ✨
-        </p>
-
-        <button 
-          onClick={() => {
-            setSelectedCategory(null);
-            setView('collections');
-          }}
-          className="btn-primary" 
-          style={{ 
-            maxWidth: '220px', 
-            borderRadius: '30px', 
-            padding: '12px 28px',
-            fontSize: '15px'
-          }}
-        >
-          Shop Now 🛍
-        </button>
-      </div>
 
       {/* Automatic Animated sliding banners */}
       {banners.length > 0 && (

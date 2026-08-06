@@ -31,7 +31,6 @@ const Instagram = ({ size = 20 }) => (
 );
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
   const [view, setView] = useState('home'); // home, collections, orders, contact, cart, checkout, admin
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -59,18 +58,10 @@ export default function App() {
     // Direct url check for admin portal
     if (window.location.pathname === '/admin') {
       setView('admin');
-      setShowSplash(false);
     }
   }, []);
 
-  // Splash screen timeout
-  useEffect(() => {
-    if (view === 'admin') return; // Bypass if admin URL direct load
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2800); // 2.8 seconds beautiful splash
-    return () => clearTimeout(timer);
-  }, [view]);
+
 
   // Cart helper functions
   const addToCart = (product, color = '', size = '') => {
@@ -117,30 +108,7 @@ export default function App() {
     }
   };
 
-  // 1. Render Splash Screen
-  if (showSplash) {
-    return (
-      <div className="splash-screen">
-        <div className="splash-logo-container">
-          <div className="splash-logo">
-            <span>💍</span>
-          </div>
-        </div>
-        <h1 className="splash-title">RAINBOW COLLECTION</h1>
-        <p className="splash-tagline">✨ Fashion Jewellery Store ✨</p>
-        
-        <button 
-          onClick={() => {
-            setShowSplash(false);
-            setView('home');
-          }} 
-          className="splash-button"
-        >
-          Shop Now ✨
-        </button>
-      </div>
-    );
-  }
+
 
   // 2. Render Main Application Layout
   return (
@@ -150,7 +118,7 @@ export default function App() {
         <header className="app-header">
           <div className="header-brand" onClick={() => handleNavClick('home')} style={{ cursor: 'pointer' }}>
             <div className="header-logo">
-              <span>💍</span>
+              <img src="/logo.jpg" alt="Logo" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
             </div>
             <div className="header-title-wrapper">
               <span className="header-title">Rainbow Collection</span>
