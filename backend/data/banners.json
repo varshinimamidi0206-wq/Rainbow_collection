@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "cob9u2bqpmsh41300",
+    "createdAt": "2026-08-06T06:03:29.520Z",
+    "url": "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=1000",
+    "title": "New Arrivals",
+    "id": "cob9u2bqpmsh41300"
+  },
+  {
+    "_id": "yxwlmbux1msh41305",
+    "createdAt": "2026-08-06T06:03:29.525Z",
+    "url": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1000",
+    "title": "Weekly Stock",
+    "id": "yxwlmbux1msh41305"
+  },
+  {
+    "_id": "oegkvsjsimsh41309",
+    "createdAt": "2026-08-06T06:03:29.529Z",
+    "url": "https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=1000",
+    "title": "Festival Collection",
+    "id": "oegkvsjsimsh41309"
+  },
+  {
+    "_id": "nx8jp0ulwmsh4130f",
+    "createdAt": "2026-08-06T06:03:29.535Z",
+    "url": "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?w=1000",
+    "title": "Wedding Collection",
+    "id": "nx8jp0ulwmsh4130f"
+  }
+]

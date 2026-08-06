@@ -1,0 +1,192 @@
+[
+  {
+    "_id": "o7bnkm63bmsh4130j",
+    "createdAt": "2026-08-06T06:03:29.539Z",
+    "name": "Gold Plated Bangles",
+    "category": "Bangles",
+    "description": "Beautiful Daily Wear Bangles",
+    "price": 799,
+    "discount": 20,
+    "images": [
+      "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500",
+      "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Gold",
+      "Rose Gold",
+      "Silver"
+    ],
+    "sizes": [
+      "2.2",
+      "2.4",
+      "2.6",
+      "2.8"
+    ],
+    "id": "o7bnkm63bmsh4130j"
+  },
+  {
+    "_id": "0h6zjcci6msh4130n",
+    "createdAt": "2026-08-06T06:03:29.543Z",
+    "name": "Traditional Jhumkas",
+    "category": "Earrings",
+    "description": "Beautiful Daily Wear Earrings",
+    "price": 399,
+    "discount": 15,
+    "images": [
+      "https://images.unsplash.com/photo-1630019852942-f89202989a59?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Gold",
+      "Silver"
+    ],
+    "sizes": [],
+    "id": "0h6zjcci6msh4130n"
+  },
+  {
+    "_id": "2n98dxw1cmsh4130t",
+    "createdAt": "2026-08-06T06:03:29.549Z",
+    "name": "Short Choker Chain",
+    "category": "Short Chains",
+    "description": "Elegant Party Wear Chain",
+    "price": 999,
+    "discount": 10,
+    "images": [
+      "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Gold"
+    ],
+    "sizes": [],
+    "id": "2n98dxw1cmsh4130t"
+  },
+  {
+    "_id": "ikj2ixip4msh41310",
+    "createdAt": "2026-08-06T06:03:29.556Z",
+    "name": "Designer Haram Set",
+    "category": "Long Chains",
+    "description": "Traditional Bangles Necklace Combo",
+    "price": 1599,
+    "discount": 25,
+    "images": [
+      "https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Gold"
+    ],
+    "sizes": [],
+    "id": "ikj2ixip4msh41310"
+  },
+  {
+    "_id": "18cgqufmemsh41313",
+    "createdAt": "2026-08-06T06:03:29.559Z",
+    "name": "Velvet Hair Bow Clip",
+    "category": "Hair Accessories",
+    "description": "Stylish Hair Clip",
+    "price": 149,
+    "discount": 5,
+    "images": [
+      "https://images.unsplash.com/photo-1606156137806-d345a4e037f3?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Red",
+      "Pink",
+      "Green"
+    ],
+    "sizes": [],
+    "id": "18cgqufmemsh41313"
+  },
+  {
+    "_id": "hevvxgy12msh41317",
+    "createdAt": "2026-08-06T06:03:29.563Z",
+    "name": "Matte Liquid Lipstick",
+    "category": "Cosmetics",
+    "description": "Premium Long Lasting Lipstick",
+    "price": 299,
+    "discount": 10,
+    "images": [
+      "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Red",
+      "Pink"
+    ],
+    "sizes": [],
+    "id": "hevvxgy12msh41317"
+  },
+  {
+    "_id": "b3715vts8msh4131d",
+    "createdAt": "2026-08-06T06:03:29.569Z",
+    "name": "German Silver Oxidised Set",
+    "category": "German Silver",
+    "description": "Premium German Silver Set",
+    "price": 1299,
+    "discount": 15,
+    "images": [
+      "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Silver"
+    ],
+    "sizes": [],
+    "id": "b3715vts8msh4131d"
+  },
+  {
+    "_id": "9jsa7pjfpmsh4131g",
+    "createdAt": "2026-08-06T06:03:29.572Z",
+    "name": "1 GM Gold Plated Necklace",
+    "category": "1 GM Jewellery",
+    "description": "Designer Necklace",
+    "price": 1899,
+    "discount": 30,
+    "images": [
+      "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Gold"
+    ],
+    "sizes": [],
+    "id": "9jsa7pjfpmsh4131g"
+  },
+  {
+    "_id": "v7zx579t1msh4131m",
+    "createdAt": "2026-08-06T06:03:29.578Z",
+    "name": "Heavy Bridal Haram Rental",
+    "category": "Rental Jewellery",
+    "description": "Traditional Wedding Rental jewellery set",
+    "price": 2500,
+    "discount": 0,
+    "images": [
+      "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?w=500"
+    ],
+    "video": "",
+    "colors": [
+      "Gold"
+    ],
+    "sizes": [],
+    "id": "v7zx579t1msh4131m"
+  },
+  {
+    "_id": "am9voo6vemsh48j26",
+    "createdAt": "2026-08-06T06:09:16.926Z",
+    "name": "Shining Star Earrings",
+    "category": "Earrings",
+    "description": "Beautiful Daily Wear Earrings",
+    "price": 350,
+    "discount": 10,
+    "images": [
+      "https://images.unsplash.com/photo-1630019852942-f89202989a59?w=500"
+    ],
+    "video": "",
+    "colors": [],
+    "sizes": [],
+    "id": "am9voo6vemsh48j26"
+  }
+]
