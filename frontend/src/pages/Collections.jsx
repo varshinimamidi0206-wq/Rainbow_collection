@@ -22,7 +22,6 @@ export default function Collections({
 }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [touchStartX, setTouchStartX] = useState(0);
   
   // Track active slide index for each product: { [productId]: activeImageIndex }
   const [carouselIndices, setCarouselIndices] = useState({});
@@ -109,34 +108,6 @@ export default function Collections({
     } else {
       triggerBuyNow(product);
     }
-  };
-
-  const handleTouchStart = (e) => {
-    setTouchStartX(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = (e, prodId, imagesCount) => {
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX - touchEndX;
-    if (diff > 50) {
-      handleNextSlide(prodId, imagesCount);
-    } else if (diff < -50) {
-      handlePrevSlide(prodId, imagesCount);
-    }
-  };
-
-  const getThreeImages = (product) => {
-    const list = product.images || [];
-    const fallbacks = [
-      'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500',
-      'https://images.unsplash.com/photo-1630019852942-f89202989a59?w=500',
-      'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500'
-    ];
-    const result = [...list];
-    while (result.length < 3) {
-      result.push(fallbacks[result.length % fallbacks.length]);
-    }
-    return result.slice(0, 3);
   };
 
   // 1. Render Categories View
@@ -226,94 +197,100 @@ export default function Collections({
           </button>
         </div>
       ) : (
-        <div className="product-grid-compact">
+        <div className="product-list">
           {products.map(product => {
-            const images = getThreeImages(product);
             const activeIdx = carouselIndices[product._id] || 0;
+            const images = product.images && product.images.length > 0 
+              ? product.images 
+              : ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500']; // default image fallback
+            
+            // Calculate original price based on discount
             const hasDiscount = product.discount > 0;
             const originalPrice = hasDiscount 
               ? Math.round(product.price / (1 - product.discount / 100))
               : null;
 
             return (
-              <div key={product._id} className="product-card-compact">
-                
-                {/* Swipeable Carousel */}
-                <div 
-                  className="product-carousel-compact"
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={(e) => handleTouchEnd(e, product._id, images.length)}
-                >
+              <div key={product._id} className="product-card">
+                {/* Image Carousel */}
+                <div className="product-carousel">
                   <div 
-                    className="carousel-track-compact"
+                    className="carousel-track"
                     style={{ transform: `translateX(-${activeIdx * 100}%)` }}
                   >
                     {images.map((img, i) => {
+                      // Adjust local static urls
                       const finalImgUrl = img.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${img}` : img;
                       return (
                         <img 
                           key={i}
                           src={finalImgUrl}
                           alt={`${product.name} - ${i + 1}`}
-                          className="carousel-image-compact"
-                          loading="lazy"
+                          className="carousel-image"
                         />
                       );
                     })}
                   </div>
 
-                  <div className="carousel-indicators-compact">
+                  {images.length > 1 && (
+                    <>
+                      <button 
+                        className="carousel-btn prev"
+                        onClick={() => handlePrevSlide(product._id, images.length)}
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button 
+                        className="carousel-btn next"
+                        onClick={() => handleNextSlide(product._id, images.length)}
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </>
+                  )}
+
+                  <div className="carousel-indicators">
                     {images.map((_, i) => (
                       <div 
                         key={i}
-                        className={`carousel-dot-compact ${i === activeIdx ? 'active' : ''}`}
+                        className={`carousel-dot ${i === activeIdx ? 'active' : ''}`}
                       />
                     ))}
                   </div>
                 </div>
 
-                {/* Details */}
-                <div className="product-details-compact">
-                  <h3 className="product-name-compact">{product.name}</h3>
-                  <p className="product-desc-compact">{product.description}</p>
+                {/* Product details */}
+                <div className="product-details">
+                  <h3 className="product-name">{product.name}</h3>
+                  <p className="product-desc">{product.description}</p>
 
-                  <div className="price-row-compact">
-                    <span className="current-price-compact">₹{product.price}</span>
+                  <div className="price-row">
+                    <span className="current-price">₹{product.price}</span>
                     {hasDiscount && (
                       <>
-                        <span className="original-price-compact">₹{originalPrice}</span>
-                        <span className="discount-badge-compact">{product.discount}% OFF</span>
+                        <span className="original-price">₹{originalPrice}</span>
+                        <span className="discount-badge">{product.discount}% OFF</span>
                       </>
                     )}
                   </div>
 
-                  {/* Bangles Selector options inline if category is Bangles */}
+                  {/* Bangle selectors */}
                   {product.category === 'Bangles' && (
                     <div style={{
                       background: '#FFF8F9',
-                      padding: '8px',
-                      borderRadius: '12px',
-                      marginBottom: '8px',
-                      border: '1px solid var(--border-color)',
-                      fontSize: '10px'
+                      padding: '12px',
+                      borderRadius: 'var(--radius-md)',
+                      marginBottom: '16px',
+                      border: '1px solid var(--border-color)'
                     }}>
-                      <div style={{ marginBottom: '6px' }}>
-                        <span style={{ fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>SIZE:</span>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      <div className="selector-group">
+                        <span className="selector-label">Choose Size:</span>
+                        <div className="options-row">
                           {['2.2', '2.4', '2.6', '2.8'].map(sz => (
                             <button
                               key={sz}
+                              className={`option-pill ${bangleSelections[product._id]?.size === sz ? 'active' : ''}`}
                               onClick={() => selectBangleSize(product._id, sz)}
-                              style={{
-                                background: bangleSelections[product._id]?.size === sz ? 'var(--primary-pink)' : '#FFF',
-                                color: bangleSelections[product._id]?.size === sz ? '#FFF' : 'var(--text-dark)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                                padding: '2px 6px',
-                                fontSize: '10px',
-                                cursor: 'pointer',
-                                transition: 'var(--transition)'
-                              }}
                             >
                               {sz}
                             </button>
@@ -321,23 +298,14 @@ export default function Collections({
                         </div>
                       </div>
 
-                      <div>
-                        <span style={{ fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>COLOR:</span>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {['Gold', 'Silver', 'Green', 'Red', 'Pink', 'Rose Gold'].map(col => (
+                      <div className="selector-group" style={{ marginBottom: 0 }}>
+                        <span className="selector-label">Choose Color:</span>
+                        <div className="options-row">
+                          {['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red'].map(col => (
                             <button
                               key={col}
+                              className={`option-pill ${bangleSelections[product._id]?.color === col ? 'active' : ''}`}
                               onClick={() => selectBangleColor(product._id, col)}
-                              style={{
-                                background: bangleSelections[product._id]?.color === col ? 'var(--primary-pink)' : '#FFF',
-                                color: bangleSelections[product._id]?.color === col ? '#FFF' : 'var(--text-dark)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                                padding: '2px 4px',
-                                fontSize: '8px',
-                                cursor: 'pointer',
-                                transition: 'var(--transition)'
-                              }}
                             >
                               {col}
                             </button>
@@ -347,23 +315,22 @@ export default function Collections({
                     </div>
                   )}
 
-                  {/* Stacking compact action buttons */}
-                  <div className="product-actions-compact">
+                  {/* Buy / Cart Action buttons */}
+                  <div className="action-row">
                     <button 
                       onClick={() => handleBuyNow(product)}
-                      className="btn-buy-compact"
+                      className="btn-primary"
                     >
-                      BUY
+                      <ShoppingBag size={18} /> BUY NOW
                     </button>
                     <button 
                       onClick={() => handleAddCart(product)}
-                      className="btn-cart-compact"
+                      className="btn-secondary"
                     >
-                      CART
+                      <ShoppingCart size={18} /> ADD CART
                     </button>
                   </div>
                 </div>
-
               </div>
             );
           })}

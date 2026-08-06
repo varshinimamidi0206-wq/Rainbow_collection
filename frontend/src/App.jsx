@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Home as HomeIcon, ShoppingBag, Package, Phone, ShoppingCart } from 'lucide-react';
+import { Home as HomeIcon, ShoppingBag, Package, Phone, ShoppingCart, Menu, X, MessageSquare } from 'lucide-react';
+
+// Import subpages
+import Home from './pages/Home';
+import Collections from './pages/Collections';
+import Orders from './pages/Orders';
+import Contact from './pages/Contact';
+import Admin from './pages/Admin';
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const Instagram = ({ size = 20 }) => (
   <svg
@@ -19,21 +30,11 @@ const Instagram = ({ size = 20 }) => (
   </svg>
 );
 
-// Import subpages
-import Home from './pages/Home';
-import Collections from './pages/Collections';
-import Orders from './pages/Orders';
-import Contact from './pages/Contact';
-import Admin from './pages/Admin';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-
-const API_BASE_URL = 'http://localhost:5000/api';
-
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [view, setView] = useState('home'); // home, collections, orders, contact, cart, checkout, admin
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Authentication State
   const [token, setToken] = useState(null);
@@ -108,6 +109,7 @@ export default function App() {
   // Switch pages
   const handleNavClick = (newView) => {
     setView(newView);
+    setMobileMenuOpen(false);
     setCheckoutCart(false);
     setDirectBuyItem(null);
     if (newView === 'collections') {
@@ -145,88 +147,63 @@ export default function App() {
     <div className="app-container">
       {/* Top Header (Hidden on Admin screen) */}
       {view !== 'admin' && (
-        <header 
-          className="app-header" 
-          style={{ 
-            height: '60px', 
-            padding: '0 16px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-          }}
-        >
-          {/* Left: Logo */}
-          <div 
-            onClick={() => handleNavClick('home')} 
-            style={{ 
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--primary-pink), var(--secondary-pink))',
-              border: '2px solid var(--accent-gold)',
-              boxShadow: 'var(--shadow-sm)'
-            }}
-          >
-            <span style={{ fontSize: '18px' }}>💍</span>
+        <header className="app-header">
+          <div className="header-brand" onClick={() => handleNavClick('home')} style={{ cursor: 'pointer' }}>
+            <div className="header-logo">
+              <span>💍</span>
+            </div>
+            <div className="header-title-wrapper">
+              <span className="header-title">Rainbow Collection</span>
+              <span className="header-subtitle">FASHION JEWELLERY</span>
+            </div>
           </div>
 
-          {/* Center: Title & Subtitle */}
-          <div 
-            onClick={() => handleNavClick('home')} 
-            style={{ 
-              cursor: 'pointer',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}
-          >
-            <span style={{ 
-              fontFamily: 'Quicksand, sans-serif', 
-              fontSize: '15px', 
-              fontWeight: '800', 
-              color: 'var(--primary-pink)',
-              letterSpacing: '0.5px',
-              lineHeight: '1.2'
-            }}>
-              Rainbow Collection
-            </span>
-            <span style={{ 
-              fontSize: '9px', 
-              color: 'var(--accent-gold)', 
-              fontWeight: '700', 
-              letterSpacing: '0.8px',
-              lineHeight: '1'
-            }}>
-              FASHION JEWELLERY
-            </span>
+          {/* Desktop Navigation Links */}
+          <nav className="desktop-header-nav">
+            <button onClick={() => handleNavClick('home')} className={`header-nav-link ${view === 'home' ? 'active' : ''}`}>Home</button>
+            <button onClick={() => handleNavClick('collections')} className={`header-nav-link ${view === 'collections' ? 'active' : ''}`}>Collections</button>
+            <button onClick={() => handleNavClick('orders')} className={`header-nav-link ${view === 'orders' ? 'active' : ''}`}>Orders</button>
+            <button onClick={() => handleNavClick('contact')} className={`header-nav-link ${view === 'contact' ? 'active' : ''}`}>Contact</button>
+          </nav>
+
+          <div className="header-actions">
+            <button 
+              className="header-cart-btn"
+              onClick={() => handleNavClick('cart')}
+            >
+              <ShoppingCart size={22} />
+              {cart.length > 0 && (
+                <span className="header-cart-badge">{cart.length}</span>
+              )}
+            </button>
+
+            {/* Mobile Hamburger menu toggle */}
+            <button 
+              className="header-menu-toggle"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
 
-          {/* Right: Instagram Icon */}
-          <a 
-            href="https://instagram.com" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            style={{ 
-              color: 'var(--primary-pink)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              background: 'var(--light-pink)',
-              transition: 'var(--transition)'
-            }}
-            className="instagram-header-btn"
-          >
-            <Instagram size={20} />
-          </a>
+          {/* Mobile Navigation Dropdown Overlay */}
+          {mobileMenuOpen && (
+            <div className="mobile-header-dropdown">
+              <button onClick={() => handleNavClick('home')} className={`mobile-nav-link ${view === 'home' ? 'active' : ''}`}>
+                <HomeIcon size={18} /> Home
+              </button>
+              <button onClick={() => handleNavClick('collections')} className={`mobile-nav-link ${view === 'collections' ? 'active' : ''}`}>
+                <ShoppingBag size={18} /> Collections
+              </button>
+              <button onClick={() => handleNavClick('orders')} className={`mobile-nav-link ${view === 'orders' ? 'active' : ''}`}>
+                <Package size={18} /> Orders
+              </button>
+              <button onClick={() => handleNavClick('contact')} className={`mobile-nav-link ${view === 'contact' ? 'active' : ''}`}>
+                <Phone size={18} /> Contact
+              </button>
+            </div>
+          )}
         </header>
       )}
 
@@ -236,8 +213,6 @@ export default function App() {
           <Home 
             setView={setView} 
             setSelectedCategory={setSelectedCategory} 
-            addToCart={addToCart}
-            triggerBuyNow={triggerBuyNow}
             apiBaseUrl={API_BASE_URL} 
           />
         )}
@@ -338,17 +313,55 @@ export default function App() {
         </nav>
       )}
 
-      {/* Floating Cart FAB */}
-      {view !== 'admin' && view !== 'checkout' && (
-        <button 
-          className="floating-cart-fab"
-          onClick={() => handleNavClick('cart')}
-        >
-          <ShoppingCart size={24} />
-          {cart.length > 0 && (
-            <span className="floating-cart-fab-badge">{cart.length}</span>
-          )}
-        </button>
+      {/* Floating Support Buttons */}
+      {view !== 'admin' && (
+        <div className="floating-support-buttons">
+          <a 
+            href="https://wa.me/918919590533?text=Hi,%20I%20am%20interested%20in%20Rainbow%20Collection%20jewellery!" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="floating-btn whatsapp-floating"
+            title="Chat on WhatsApp"
+          >
+            <MessageSquare size={22} />
+          </a>
+          <a 
+            href="https://instagram.com" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="floating-btn instagram-floating"
+            title="Follow on Instagram"
+          >
+            <Instagram size={22} />
+          </a>
+        </div>
+      )}
+
+      {/* Footer (Hidden on Admin screen) */}
+      {view !== 'admin' && (
+        <footer className="app-footer-global">
+          <div className="footer-content">
+            <div className="footer-section">
+              <h4>Rainbow Collection</h4>
+              <p>Your one-stop destination for premium fashion jewellery, bridal sets, cosmetics, and more.</p>
+            </div>
+            <div className="footer-section">
+              <h4>Quick Links</h4>
+              <button onClick={() => handleNavClick('home')}>Home</button>
+              <button onClick={() => handleNavClick('collections')}>Collections</button>
+              <button onClick={() => handleNavClick('orders')}>Orders</button>
+              <button onClick={() => handleNavClick('contact')}>Contact Us</button>
+            </div>
+            <div className="footer-section">
+              <h4>Branches</h4>
+              <p>📍 YV Street, Ganagapeta, Kadapa</p>
+              <p>📍 Main Market Area, Kakinada</p>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; {new Date().getFullYear()} Rainbow Collection. All rights reserved.</p>
+          </div>
+        </footer>
       )}
     </div>
   );

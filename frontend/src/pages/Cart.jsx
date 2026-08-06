@@ -33,65 +33,67 @@ export default function Cart({ cart, removeFromCart, setView, setCheckoutCart, a
         </p>
       </div>
 
-      {/* Cart list items */}
-      <div className="cart-list">
-        {cart.map((item, index) => {
-          const itemImage = item.image || (item.images && item.images.length > 0 ? item.images[0] : '');
-          const finalImg = itemImage.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${itemImage}` : itemImage;
-          return (
-            <div key={index} className="cart-item">
-              <img src={finalImg} className="cart-item-img" alt={item.name} />
-              
-              <div className="cart-item-details">
-                <h3 className="cart-item-name">{item.name}</h3>
+      <div className="cart-page-content">
+        {/* Cart list items */}
+        <div className="cart-list">
+          {cart.map((item, index) => {
+            const itemImage = item.image || (item.images && item.images.length > 0 ? item.images[0] : '');
+            const finalImg = itemImage.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${itemImage}` : itemImage;
+            return (
+              <div key={index} className="cart-item">
+                <img src={finalImg} className="cart-item-img" alt={item.name} />
                 
-                {/* Size and Color specifications */}
-                {(item.color || item.size) && (
-                  <div className="cart-item-meta">
-                    {item.color && `Color: ${item.color}`}
-                    {item.color && item.size && ' | '}
-                    {item.size && `Size: ${item.size}`}
-                  </div>
-                )}
-                
-                <div className="cart-item-price">₹{item.price}</div>
+                <div className="cart-item-details">
+                  <h3 className="cart-item-name">{item.name}</h3>
+                  
+                  {/* Size and Color specifications */}
+                  {(item.color || item.size) && (
+                    <div className="cart-item-meta">
+                      {item.color && `Color: ${item.color}`}
+                      {item.color && item.size && ' | '}
+                      {item.size && `Size: ${item.size}`}
+                    </div>
+                  )}
+                  
+                  <div className="cart-item-price">₹{item.price}</div>
+                </div>
+
+                {/* Remove button */}
+                <button 
+                  onClick={() => removeFromCart(index)}
+                  className="cart-item-remove"
+                  title="Remove item"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
-
-              {/* Remove button */}
-              <button 
-                onClick={() => removeFromCart(index)}
-                className="cart-item-remove"
-                title="Remove item"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Cart bottom summary row */}
-      <div className="cart-summary">
-        <div className="summary-row">
-          <span className="summary-label">Items Subtotal:</span>
-          <span className="summary-value">₹{subtotal}</span>
-        </div>
-        <div className="summary-row" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px' }}>
-          <span className="summary-label">Delivery Charges:</span>
-          <span className="summary-value" style={{ color: 'var(--success)', fontSize: '15px' }}>FREE</span>
-        </div>
-        <div className="summary-row" style={{ marginBottom: '20px' }}>
-          <span className="summary-label" style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Grand Total:</span>
-          <span className="summary-value" style={{ fontSize: '24px' }}>₹{subtotal}</span>
+            );
+          })}
         </div>
 
-        <button 
-          onClick={() => setCheckoutCart(true)}
-          className="btn-primary"
-          style={{ width: '100%', padding: '16px', fontSize: '18px' }}
-        >
-          <ShoppingBag size={20} /> Checkout & Order
-        </button>
+        {/* Cart bottom summary row */}
+        <div className="cart-summary">
+          <div className="summary-row">
+            <span className="summary-label">Items Subtotal:</span>
+            <span className="summary-value">₹{subtotal}</span>
+          </div>
+          <div className="summary-row" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px' }}>
+            <span className="summary-label">Delivery Charges:</span>
+            <span className="summary-value" style={{ color: 'var(--success)', fontSize: '15px' }}>FREE</span>
+          </div>
+          <div className="summary-row" style={{ marginBottom: '20px' }}>
+            <span className="summary-label" style={{ fontWeight: '700', color: 'var(--text-dark)' }}>Grand Total:</span>
+            <span className="summary-value" style={{ fontSize: '24px' }}>₹{subtotal}</span>
+          </div>
+
+          <button 
+            onClick={() => setCheckoutCart(true)}
+            className="btn-primary"
+            style={{ width: '100%', padding: '16px', fontSize: '18px' }}
+          >
+            <ShoppingBag size={20} /> Checkout & Order
+          </button>
+        </div>
       </div>
     </div>
   );
