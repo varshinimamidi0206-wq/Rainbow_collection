@@ -36,7 +36,8 @@ export default function Cart({ cart, removeFromCart, setView, setCheckoutCart, a
       {/* Cart list items */}
       <div className="cart-list">
         {cart.map((item, index) => {
-          const finalImg = item.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${item.image}` : item.image;
+          const itemImage = item.image || (item.images && item.images.length > 0 ? item.images[0] : '');
+          const finalImg = itemImage.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${itemImage}` : itemImage;
           return (
             <div key={index} className="cart-item">
               <img src={finalImg} className="cart-item-img" alt={item.name} />

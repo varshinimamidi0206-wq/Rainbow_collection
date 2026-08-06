@@ -1,7 +1,7 @@
 import React from 'react';
 import { Phone, MapPin, MessageSquare } from 'lucide-react';
 
-const InstagramIcon = ({ size = 24 }) => (
+const Instagram = ({ size = 20 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
@@ -25,120 +25,125 @@ export default function Contact() {
   const WHATSAPP_PHONE = '8919590533';
 
   return (
-    <div className="contact-container" style={{ animation: 'fadeInUp 0.3s ease-out' }}>
+    <div className="contact-container" style={{ animation: 'fadeInUp 0.3s ease-out', padding: '20px 16px', background: '#FAF8F6', minHeight: '80vh' }}>
+      
       {/* Title */}
-      <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-        <h2 style={{ fontFamily: 'Quicksand', fontSize: '24px', fontWeight: '700', color: 'var(--primary-pink)' }}>
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontFamily: 'Quicksand', fontSize: '22px', fontWeight: '800', color: 'var(--primary-pink)' }}>
           Contact Us
         </h2>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          Get in touch or visit our retail jewellery showrooms
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          Visit our showrooms or get in touch online
         </p>
       </div>
 
-      {/* Social channels card */}
-      <div className="contact-card">
-        <h3 className="contact-card-title">
-          <InstagramIcon size={18} /> Social & Chat Support
-        </h3>
-        
-        {/* Instagram button */}
-        <a 
-          href="https://instagram.com" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="contact-social-btn instagram"
-        >
-          <InstagramIcon size={20} /> Rainbow Collection India
-        </a>
-
-
-        {/* WhatsApp button */}
-        <a 
-          href={`https://wa.me/91${WHATSAPP_PHONE}?text=Hi,%20I%20am%20interested%20in%20Rainbow%20Collection%20jewellery!`} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="contact-social-btn whatsapp"
-        >
-          <MessageSquare size={20} /> Chat on WhatsApp
-        </a>
-      </div>
-
-      {/* Branches header */}
-      <h3 style={{ fontFamily: 'Quicksand', fontSize: '18px', fontWeight: '700', marginTop: '8px' }}>
-        📍 Our Branches
-      </h3>
-
-      {/* Kadapa Branch */}
-      <div className="contact-card">
-        <h4 className="branch-title">
-          Showroom 1: Kadapa
+      {/* Showroom 1: Kadapa */}
+      <div className="contact-card" style={{ padding: '16px', borderRadius: '18px', marginBottom: '16px' }}>
+        <h4 className="branch-title" style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+          <span>📍</span> Kadapa Showroom
         </h4>
-        <p className="branch-address">
-          YV Street, Ganagapeta,<br />
-          Kadapa, Andhra Pradesh 516001
+        <p className="branch-address" style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4', marginBottom: '12px' }}>
+          YV Street, Ganagapeta, Kadapa, Andhra Pradesh 516001
         </p>
         
-        <a href={`tel:${KADAPA_PHONE}`} className="contact-social-btn phone">
-          <Phone size={18} /> Call {KADAPA_PHONE}
-        </a>
-
-        <a 
-          href="https://maps.google.com/?q=YV+Street,+Ganagapeta,+Kadapa,+Andhra+Pradesh+516001" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="contact-social-btn maps"
-        >
-          <MapPin size={18} /> View on Google Maps
-        </a>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <a 
+            href={`tel:${KADAPA_PHONE}`} 
+            className="contact-social-btn phone"
+            style={{ flex: 1, minHeight: '48px', margin: 0, borderRadius: '12px', fontSize: '13px' }}
+          >
+            <Phone size={16} /> Call Showroom
+          </a>
+          <a 
+            href="https://maps.google.com/?q=YV+Street,+Ganagapeta,+Kadapa,+Andhra+Pradesh+516001" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="contact-social-btn maps"
+            style={{ flex: 1, minHeight: '48px', margin: 0, borderRadius: '12px', fontSize: '13px' }}
+          >
+            <MapPin size={16} /> Google Maps
+          </a>
+        </div>
       </div>
 
-      {/* Kakinada Showroom */}
-      <div className="contact-card">
-        <h4 className="branch-title">
-          Showroom 2: Kakinada
+      {/* Showroom 2: Kakinada */}
+      <div className="contact-card" style={{ padding: '16px', borderRadius: '18px', marginBottom: '16px' }}>
+        <h4 className="branch-title" style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+          <span>📍</span> Kakinada Showroom
         </h4>
-        <p className="branch-address">
-          Main Market Area Showroom,<br />
-          Kakinada, Andhra Pradesh 533001
+        <p className="branch-address" style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4', marginBottom: '12px' }}>
+          Main Market Area Showroom, Kakinada, Andhra Pradesh 533001
         </p>
         
-        <a href={`tel:${KAKINADA_PHONE}`} className="contact-social-btn phone">
-          <Phone size={18} /> Call {KAKINADA_PHONE}
-        </a>
-
-        <a 
-          href="https://maps.google.com/?q=Kakinada,+Andhra+Pradesh+533001" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="contact-social-btn maps"
-        >
-          <MapPin size={18} /> View on Google Maps
-        </a>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <a 
+            href={`tel:${KAKINADA_PHONE}`} 
+            className="contact-social-btn phone"
+            style={{ flex: 1, minHeight: '48px', margin: 0, borderRadius: '12px', fontSize: '13px' }}
+          >
+            <Phone size={16} /> Call Showroom
+          </a>
+          <a 
+            href="https://maps.google.com/?q=Kakinada,+Andhra+Pradesh+533001" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="contact-social-btn maps"
+            style={{ flex: 1, minHeight: '48px', margin: 0, borderRadius: '12px', fontSize: '13px' }}
+          >
+            <MapPin size={16} /> Google Maps
+          </a>
+        </div>
       </div>
 
-      {/* Business Description Banner */}
+      {/* Social & Chat Support */}
+      <div className="contact-card" style={{ padding: '16px', borderRadius: '18px', marginBottom: '16px' }}>
+        <h4 className="contact-card-title" style={{ fontSize: '15px', fontWeight: '700', color: 'var(--primary-pink)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+          <span>💬</span> Social & Chat Support
+        </h4>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <a 
+            href="https://instagram.com" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="contact-social-btn instagram"
+            style={{ minHeight: '48px', margin: 0, borderRadius: '12px', fontSize: '13px' }}
+          >
+            <Instagram size={18} /> Follow on Instagram
+          </a>
+
+          <a 
+            href={`https://wa.me/91${WHATSAPP_PHONE}?text=Hi,%20I%20am%20interested%20in%20Rainbow%20Collection%20jewellery!`} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="contact-social-btn whatsapp"
+            style={{ minHeight: '48px', margin: 0, borderRadius: '12px', fontSize: '13px' }}
+          >
+            <MessageSquare size={18} /> Chat on WhatsApp
+          </a>
+        </div>
+      </div>
+
+      {/* Specialty Banner */}
       <div style={{
         background: 'linear-gradient(135deg, var(--light-pink), #FFF)',
         border: '1.5px solid var(--border-color)',
-        borderRadius: 'var(--radius-md)',
-        padding: '20px',
+        borderRadius: '18px',
+        padding: '16px',
         textAlign: 'center',
         boxShadow: 'var(--shadow-sm)',
         marginBottom: '20px'
       }}>
-        <h4 style={{ color: 'var(--accent-gold)', fontWeight: '700', fontSize: '14px', letterSpacing: '1px', marginBottom: '8px' }}>
-          SPECIALITIES AVAILABLE
+        <h4 style={{ color: 'var(--accent-gold)', fontWeight: '700', fontSize: '12px', letterSpacing: '1px', marginBottom: '6px' }}>
+          OUR JEWELLERY SPECIALITIES
         </h4>
-        <p style={{ fontSize: '13px', color: 'var(--text-dark)', fontWeight: '600', lineHeight: '1.6' }}>
-          💍 1 GM Gold Jewellery<br />
-          💍 Gold Plated Bangles<br />
-          🎀 Premium Hair Accessories<br />
-          💄 Cosmetics & Makeup<br />
-          🪙 Traditional German Silver<br />
-          👑 Grand Rental Bridal Sets
+        <p style={{ fontSize: '12px', color: 'var(--text-dark)', fontWeight: '600', lineHeight: '1.6' }}>
+          💍 1 GM Gold Jewellery &nbsp;•&nbsp; 💍 Gold Plated Bangles<br />
+          🎀 Premium Hair Accessories &nbsp;•&nbsp; 💄 Cosmetics & Makeup<br />
+          🪙 Traditional German Silver &nbsp;•&nbsp; 👑 Grand Bridal Rental Sets
         </p>
       </div>
+
     </div>
   );
 }

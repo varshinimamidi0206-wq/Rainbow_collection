@@ -1,6 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Home as HomeIcon, ShoppingBag, Package, Phone, ShoppingCart } from 'lucide-react';
 
+const Instagram = ({ size = 20 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
 // Import subpages
 import Home from './pages/Home';
 import Collections from './pages/Collections';
@@ -127,26 +145,88 @@ export default function App() {
     <div className="app-container">
       {/* Top Header (Hidden on Admin screen) */}
       {view !== 'admin' && (
-        <header className="app-header">
-          <div className="header-brand" onClick={() => handleNavClick('home')} style={{ cursor: 'pointer' }}>
-            <div className="header-logo">
-              <span>💍</span>
-            </div>
-            <div className="header-title-wrapper">
-              <span className="header-title">Rainbow Collection</span>
-              <span className="header-subtitle">FASHION JEWELLERY</span>
-            </div>
+        <header 
+          className="app-header" 
+          style={{ 
+            height: '60px', 
+            padding: '0 16px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+          }}
+        >
+          {/* Left: Logo */}
+          <div 
+            onClick={() => handleNavClick('home')} 
+            style={{ 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--primary-pink), var(--secondary-pink))',
+              border: '2px solid var(--accent-gold)',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>💍</span>
           </div>
 
-          <button 
-            className="header-cart-btn"
-            onClick={() => handleNavClick('cart')}
+          {/* Center: Title & Subtitle */}
+          <div 
+            onClick={() => handleNavClick('home')} 
+            style={{ 
+              cursor: 'pointer',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}
           >
-            <ShoppingCart size={22} />
-            {cart.length > 0 && (
-              <span className="header-cart-badge">{cart.length}</span>
-            )}
-          </button>
+            <span style={{ 
+              fontFamily: 'Quicksand, sans-serif', 
+              fontSize: '15px', 
+              fontWeight: '800', 
+              color: 'var(--primary-pink)',
+              letterSpacing: '0.5px',
+              lineHeight: '1.2'
+            }}>
+              Rainbow Collection
+            </span>
+            <span style={{ 
+              fontSize: '9px', 
+              color: 'var(--accent-gold)', 
+              fontWeight: '700', 
+              letterSpacing: '0.8px',
+              lineHeight: '1'
+            }}>
+              FASHION JEWELLERY
+            </span>
+          </div>
+
+          {/* Right: Instagram Icon */}
+          <a 
+            href="https://instagram.com" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style={{ 
+              color: 'var(--primary-pink)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              background: 'var(--light-pink)',
+              transition: 'var(--transition)'
+            }}
+            className="instagram-header-btn"
+          >
+            <Instagram size={20} />
+          </a>
         </header>
       )}
 
@@ -156,6 +236,8 @@ export default function App() {
           <Home 
             setView={setView} 
             setSelectedCategory={setSelectedCategory} 
+            addToCart={addToCart}
+            triggerBuyNow={triggerBuyNow}
             apiBaseUrl={API_BASE_URL} 
           />
         )}
@@ -254,6 +336,19 @@ export default function App() {
             <span className="nav-item-label">Contact</span>
           </button>
         </nav>
+      )}
+
+      {/* Floating Cart FAB */}
+      {view !== 'admin' && view !== 'checkout' && (
+        <button 
+          className="floating-cart-fab"
+          onClick={() => handleNavClick('cart')}
+        >
+          <ShoppingCart size={24} />
+          {cart.length > 0 && (
+            <span className="floating-cart-fab-badge">{cart.length}</span>
+          )}
+        </button>
       )}
     </div>
   );
