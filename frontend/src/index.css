@@ -1,22 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap');
 
 :root {
-  --primary-pink: #E84575;
-  --primary-pink-hover: #d0305f;
-  --secondary-pink: #FF8E9E;
-  --light-pink: #FFF0F3;
+  --primary-pink: #7A1F5B;
+  --primary-pink-hover: #5A1745;
+  --secondary-pink: #D4AF37;
+  --light-pink: #FFF9F0;
   --accent-gold: #D4AF37;
   --accent-gold-hover: #bfa030;
-  --light-gold: #FAF3E0;
+  --light-gold: #E8D18A;
   --white: #FFFFFF;
-  --text-dark: #2C2C2C;
+  --text-dark: #2B1825;
   --text-muted: #7E7E7E;
-  --border-color: #FFE5EC;
+  --border-color: #E8D18A;
   --success: #2EC4B6;
   
-  --shadow-sm: 0 4px 12px rgba(232, 69, 117, 0.05);
-  --shadow-md: 0 8px 24px rgba(232, 69, 117, 0.1);
-  --shadow-lg: 0 16px 36px rgba(232, 69, 117, 0.15);
+  --shadow-sm: 0 4px 12px rgba(122, 31, 91, 0.05);
+  --shadow-md: 0 8px 24px rgba(122, 31, 91, 0.1);
+  --shadow-lg: 0 16px 36px rgba(122, 31, 91, 0.15);
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 24px;
@@ -103,7 +103,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(circle, #FFEBF0 0%, #FFFFFF 100%);
+  background: radial-gradient(circle, #FFF9F0 0%, #FFFFFF 100%);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -138,7 +138,7 @@ body {
   font-weight: 700;
   color: var(--primary-pink);
   letter-spacing: 2px;
-  text-shadow: 1px 1px 2px rgba(232, 69, 117, 0.1);
+  text-shadow: 1px 1px 2px rgba(122, 31, 91, 0.1);
   margin-bottom: 4px;
 }
 
@@ -152,7 +152,7 @@ body {
 
 .splash-button {
   padding: 16px 48px;
-  background: linear-gradient(135deg, var(--primary-pink), #FF5E89);
+  background: linear-gradient(135deg, var(--primary-pink), var(--primary-pink-hover));
   color: var(--white);
   border: none;
   border-radius: var(--radius-lg);
@@ -388,7 +388,7 @@ body {
 .scroll-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-dark);
+  color: var(--primary-pink);
   line-height: 1.2;
 }
 
@@ -425,13 +425,14 @@ body {
 .category-icon {
   font-size: 40px;
   margin-bottom: 12px;
+  color: var(--primary-pink);
 }
 
 .category-title {
   font-family: 'Quicksand', sans-serif;
   font-size: 15px;
   font-weight: 700;
-  color: var(--text-dark);
+  color: var(--primary-pink);
 }
 
 /* Product list view */
@@ -586,7 +587,7 @@ body {
   font-family: 'Quicksand', sans-serif;
   font-size: 18px;
   font-weight: 700;
-  color: var(--text-dark);
+  color: var(--primary-pink);
   margin-bottom: 4px;
 }
 
@@ -617,9 +618,9 @@ body {
 }
 
 .discount-badge {
-  background: #FFF0F3;
-  color: var(--primary-pink);
-  border: 1px solid #FFCCD5;
+  background: var(--light-gold);
+  color: var(--text-dark);
+  border: 1px solid var(--accent-gold);
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
@@ -670,7 +671,7 @@ body {
 
 .btn-primary {
   flex: 1;
-  background: linear-gradient(135deg, var(--primary-pink), #FF5E89);
+  background: linear-gradient(135deg, var(--primary-pink), var(--primary-pink-hover));
   color: var(--white);
   border: none;
   padding: 14px;
@@ -688,6 +689,10 @@ body {
 
 .btn-primary:active {
   transform: scale(0.97);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
 }
 
 .btn-secondary {
@@ -721,7 +726,7 @@ body {
   width: 100%;
   max-width: 480px;
   height: 68px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 249, 240, 0.95);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-color);
   display: flex;
@@ -736,7 +741,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: #70606B;
   border: none;
   background: none;
   cursor: pointer;
@@ -765,6 +770,7 @@ body {
 .nav-item.active .nav-item-icon {
   transform: translateY(-2px);
   color: var(--primary-pink);
+  filter: drop-shadow(0 0 1px var(--accent-gold));
 }
 
 /* Forms: Login, Checkout, etc. */
@@ -809,7 +815,7 @@ body {
   font-size: 15px;
   font-family: inherit;
   color: var(--text-dark);
-  background: #FFFBFB;
+  background: var(--light-pink);
   transition: var(--transition);
 }
 
@@ -822,7 +828,7 @@ body {
 .form-button {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, var(--primary-pink), #FF5E89);
+  background: linear-gradient(135deg, var(--primary-pink), var(--primary-pink-hover));
   color: var(--white);
   border: none;
   border-radius: var(--radius-md);
@@ -836,6 +842,10 @@ body {
 
 .form-button:active {
   transform: scale(0.97);
+}
+
+.form-button:hover {
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
 }
 
 /* Cart Page */
@@ -907,14 +917,14 @@ body {
 
 .cart-item-remove:active {
   transform: scale(0.9);
-  background: #FFD6E0;
+  background: var(--light-gold);
 }
 
 .cart-summary {
   padding: 20px;
   border-top: 2px dashed var(--border-color);
   margin-top: auto;
-  background: #FFFDFD;
+  background: var(--light-pink);
 }
 
 .summary-row {
@@ -1116,8 +1126,9 @@ body {
 /* Admin Dashboard */
 .admin-header {
   padding: 16px 20px;
-  background: #1E1E2F;
+  background: var(--primary-pink-hover);
   color: var(--white);
+  border-bottom: 3px solid var(--accent-gold);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1146,7 +1157,7 @@ body {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   padding: 16px 20px;
-  background: #F4F5F7;
+  background: var(--light-pink);
 }
 
 .metric-card {
@@ -1192,7 +1203,7 @@ body {
 
 .admin-tab.active {
   color: var(--primary-pink);
-  border-bottom: 3px solid var(--primary-pink);
+  border-bottom: 3px solid var(--accent-gold);
 }
 
 .admin-action-bar {
@@ -1268,7 +1279,7 @@ body {
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  background: #FFF5F7;
+  background: var(--light-pink);
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
@@ -1361,8 +1372,8 @@ body {
 
 /* Offer Banner Animation */
 .offer-banner-ticker {
-  background: linear-gradient(90deg, var(--accent-gold), #F4D068);
-  color: #5C4308;
+  background: var(--primary-pink-hover);
+  color: var(--accent-gold);
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 700;
@@ -1646,7 +1657,7 @@ body {
 .promo-banner-container {
   margin: 8px 20px 24px 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #FFF5F7, #FFFDFD);
+  background: linear-gradient(135deg, var(--light-pink), var(--white));
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
   display: flex;

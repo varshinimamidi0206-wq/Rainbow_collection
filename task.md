@@ -12,5 +12,5 @@
 - [x] Implement Cart & Checkout Page (COD, simulated UPI, branch selection)
 - [x] Implement Orders Page (filter by phone) and Contact Page
 - [x] Implement Admin Dashboard (metrics, add/edit/delete product form, banner management, order status update)
-- [ ] Verify frontend building and run backend server tests
-- [ ] Launch both servers and run automated/manual browser validation
+- [x] Verify frontend building and run backend server tests
+- [x] Launch both servers and run automated/manual browser validation

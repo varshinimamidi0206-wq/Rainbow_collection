@@ -311,7 +311,7 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
             width: '60px',
             height: '60px',
             borderRadius: '50%',
-            background: '#1E1E2F',
+            background: 'var(--primary-pink)',
             color: 'var(--white)',
             alignItems: 'center',
             justifyContent: 'center',
@@ -319,7 +319,7 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
           }}>
             <Users size={30} />
           </div>
-          <h2 className="form-title" style={{ color: '#1E1E2F' }}>Admin Portal</h2>
+          <h2 className="form-title" style={{ color: 'var(--primary-pink)' }}>Admin Portal</h2>
           <p className="form-subtitle">Login with your credentials to manage products, view orders, and check revenue dashboard.</p>
         </div>
 
@@ -367,7 +367,7 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
           <button 
             type="submit" 
             className="form-button" 
-            style={{ background: '#1E1E2F', boxShadow: 'none' }}
+            style={{ background: 'var(--primary-pink)', boxShadow: 'none' }}
             disabled={loginLoading}
           >
             {loginLoading ? 'Authenticating...' : 'Sign In'}
@@ -390,7 +390,7 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
 
   // 2. Render Admin Dashboard
   return (
-    <div style={{ animation: 'fadeInUp 0.3s ease-out', background: '#F8F9FA', minHeight: 'calc(100vh - 68px)' }}>
+    <div style={{ animation: 'fadeInUp 0.3s ease-out', background: 'var(--light-pink)', minHeight: 'calc(100vh - 68px)' }}>
       {/* Admin header */}
       <div className="admin-header">
         <div className="admin-title">🌈 Rainbow Admin</div>
@@ -571,13 +571,14 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <button 
                           className="cart-item-remove" 
-                          style={{ color: '#005F9E', background: '#D7F2FF' }}
+                          style={{ color: 'var(--primary-pink)', background: 'var(--light-pink)' }}
                           onClick={() => openEditModal(prod)}
                         >
                           <Edit size={14} />
                         </button>
                         <button 
                           className="cart-item-remove"
+                          style={{ color: '#D62E4E', background: '#FFE3E3' }}
                           onClick={() => handleDeleteProduct(prod._id)}
                         >
                           <Trash2 size={14} />
@@ -633,6 +634,7 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
                       <button 
                         onClick={() => handleDeleteBanner(ban._id)}
                         className="cart-item-remove"
+                        style={{ color: '#D62E4E', background: '#FFE3E3' }}
                       >
                         <Trash2 size={14} />
                       </button>

@@ -277,7 +277,7 @@ export default function Collections({
                   {/* Bangle selectors */}
                   {product.category === 'Bangles' && (
                     <div style={{
-                      background: '#FFF8F9',
+                      background: 'var(--light-pink)',
                       padding: '12px',
                       borderRadius: 'var(--radius-md)',
                       marginBottom: '16px',

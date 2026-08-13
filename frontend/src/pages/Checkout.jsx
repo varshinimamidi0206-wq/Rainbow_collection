@@ -229,7 +229,7 @@ export default function Checkout({
         {/* Order Details box */}
         <div style={{
           width: '100%',
-          background: '#FFF8F9',
+          background: 'var(--light-pink)',
           border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-md)',
           padding: '16px',
