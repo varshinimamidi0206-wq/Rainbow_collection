@@ -1,0 +1,93 @@
+[
+  {
+    "_id": "nt14gkuvlmsr9mhwi",
+    "createdAt": "2026-08-13T08:37:48.450Z",
+    "name": "Bangles",
+    "image": "/uploads/1786614746528-73771144.jpeg",
+    "description": "Premium collection of Bangles",
+    "displayOrder": 1,
+    "isActive": true,
+    "id": "nt14gkuvlmsr9mhwi",
+    "updatedAt": "2026-08-13T09:52:36.550Z"
+  },
+  {
+    "_id": "c4s0cymm4msr9mhwo",
+    "createdAt": "2026-08-13T08:37:48.456Z",
+    "name": "Earrings",
+    "image": "👂",
+    "description": "Premium collection of Earrings",
+    "displayOrder": 2,
+    "isActive": true,
+    "id": "c4s0cymm4msr9mhwo"
+  },
+  {
+    "_id": "lq15zxptbmsr9mhws",
+    "createdAt": "2026-08-13T08:37:48.460Z",
+    "name": "Short Chains",
+    "image": "📿",
+    "description": "Premium collection of Short Chains",
+    "displayOrder": 3,
+    "isActive": true,
+    "id": "lq15zxptbmsr9mhws"
+  },
+  {
+    "_id": "6ispl4tjqmsr9mhwv",
+    "createdAt": "2026-08-13T08:37:48.463Z",
+    "name": "Long Chains",
+    "image": "✨",
+    "description": "Premium collection of Long Chains",
+    "displayOrder": 4,
+    "isActive": true,
+    "id": "6ispl4tjqmsr9mhwv"
+  },
+  {
+    "_id": "v8g8boo6pmsr9mhx0",
+    "createdAt": "2026-08-13T08:37:48.468Z",
+    "name": "Cosmetics",
+    "image": "💄",
+    "description": "Premium collection of Cosmetics",
+    "displayOrder": 5,
+    "isActive": true,
+    "id": "v8g8boo6pmsr9mhx0"
+  },
+  {
+    "_id": "ar95t2umymsr9mhx4",
+    "createdAt": "2026-08-13T08:37:48.472Z",
+    "name": "Hair Accessories",
+    "image": "🎀",
+    "description": "Premium collection of Hair Accessories",
+    "displayOrder": 6,
+    "isActive": true,
+    "id": "ar95t2umymsr9mhx4"
+  },
+  {
+    "_id": "i9fksxc2tmsr9mhx7",
+    "createdAt": "2026-08-13T08:37:48.475Z",
+    "name": "German Silver",
+    "image": "🪙",
+    "description": "Premium collection of German Silver",
+    "displayOrder": 7,
+    "isActive": true,
+    "id": "i9fksxc2tmsr9mhx7"
+  },
+  {
+    "_id": "dc70fgp2ymsr9mhxb",
+    "createdAt": "2026-08-13T08:37:48.479Z",
+    "name": "1 GM Jewellery",
+    "image": "💎",
+    "description": "Premium collection of 1 GM Jewellery",
+    "displayOrder": 8,
+    "isActive": true,
+    "id": "dc70fgp2ymsr9mhxb"
+  },
+  {
+    "_id": "8scisgu3tmsr9mhxe",
+    "createdAt": "2026-08-13T08:37:48.482Z",
+    "name": "Rental Jewellery",
+    "image": "👑",
+    "description": "Premium collection of Rental Jewellery",
+    "displayOrder": 9,
+    "isActive": true,
+    "id": "8scisgu3tmsr9mhxe"
+  }
+]

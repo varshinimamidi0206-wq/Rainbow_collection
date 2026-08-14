@@ -10,5 +10,23 @@
     "createdAt": "2026-08-06T06:06:45.634Z",
     "phone": "9876543210",
     "id": "rvsjefv0gmsh45abm"
+  },
+  {
+    "_id": "err7hdacimsrbtoj3",
+    "createdAt": "2026-08-13T09:39:22.863Z",
+    "name": "Admin",
+    "email": "varshinimamidi0206@gmail.com",
+    "password": "$2a$10$f86rxtmgYhBhuBGd65A/juMl3jZM4C7xpG9aXin6y.W4HXWNpsG9a",
+    "role": "admin",
+    "id": "err7hdacimsrbtoj3"
+  },
+  {
+    "_id": "osum19lnymsrbtol8",
+    "createdAt": "2026-08-13T09:39:22.940Z",
+    "name": "Test Customer",
+    "email": "customer@rainbow.com",
+    "password": "$2a$10$rJXu/wFVMcPjLQBr0Os./.coPwZr7aupSwX7rSCPoLcha92/y9/Mq",
+    "role": "customer",
+    "id": "osum19lnymsrbtol8"
   }
 ]

@@ -1,22 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, Plus, Trash2, Edit, CheckCircle, Package, ShoppingBag, DollarSign, Users, X, Upload } from 'lucide-react';
 
-const CATEGORIES = [
-  { name: 'Bangles', emoji: '💍' },
-  { name: 'Earrings', emoji: '👂' },
-  { name: 'Short Chains', emoji: '📿' },
-  { name: 'Long Chains', emoji: '✨' },
-  { name: 'Hair Accessories', emoji: '🎀' },
-  { name: 'Cosmetics', emoji: '💄' },
-  { name: 'German Silver', emoji: '🪙' },
-  { name: '1 GM Jewellery', emoji: '💎' },
-  { name: 'Rental Jewellery', emoji: '👑' }
-];
-
 const AVAILABLE_SIZES = ['2.2', '2.4', '2.6', '2.8'];
 const AVAILABLE_COLORS = ['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red'];
 
-export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
+export default function Admin({ user, setUser, token, setToken, setView, apiBaseUrl }) {
   // Login fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,25 +12,41 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Dashboard state
-  const [activeTab, setActiveTab] = useState('orders'); // orders, products, banners
+  const [activeTab, setActiveTab] = useState('orders'); // orders, collections, products, banners
   const [products, setProducts] = useState([]);
+  const [collections, setCollections] = useState([]);
   const [orders, setOrders] = useState([]);
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Edit/Add modal state
+  // Product modal state
   const [showModal, setShowModal] = useState(false);
   const [editProduct, setEditProduct] = useState(null); // if null, adding new
   const [prodForm, setProdForm] = useState({
     name: '',
-    category: 'Bangles',
+    category: '',
     description: '',
     price: '',
     discount: '',
     images: ['', '', ''],
     video: '',
     colors: [],
-    sizes: []
+    sizes: [],
+    collectionId: '',
+    stock: true,
+    isNewArrival: false,
+    isActive: true
+  });
+
+  // Collection modal state
+  const [showColModal, setShowColModal] = useState(false);
+  const [editCollection, setEditCollection] = useState(null); // if null, adding new
+  const [colForm, setColForm] = useState({
+    name: '',
+    image: '',
+    description: '',
+    displayOrder: '',
+    isActive: true
   });
 
   // Banner upload state
@@ -55,17 +59,21 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
     try {
       const prodRes = await fetch(`${apiBaseUrl}/products`);
       const prodData = await prodRes.json();
-      setProducts(prodData);
+      setProducts(prodData || []);
+
+      const colRes = await fetch(`${apiBaseUrl}/collections`);
+      const colData = await colRes.json();
+      setCollections(colData || []);
 
       const ordRes = await fetch(`${apiBaseUrl}/orders`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const ordData = await ordRes.json();
-      setOrders(ordData);
+      setOrders(ordData || []);
 
       const banRes = await fetch(`${apiBaseUrl}/banners`);
       const banData = await banRes.json();
-      setBanners(banData);
+      setBanners(banData || []);
     } catch (e) {
       console.error(e);
     }
@@ -114,6 +122,8 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
     setUser(null);
     localStorage.removeItem('rainbow_token');
     localStorage.removeItem('rainbow_user');
+    alert('Logged out successfully.');
+    setView('home');
   };
 
   // Update order status
@@ -145,7 +155,26 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
       .catch(err => console.error(err));
   };
 
-  // Open modal for editing
+  // Delete collection
+  const handleDeleteCollection = (colId) => {
+    const count = products.filter(p => p.collectionId === colId).length;
+    if (count > 0) {
+      if (!window.confirm(`Warning: This collection contains ${count} products. Deleting it will leave these products without an associated collection. Are you sure you want to delete it?`)) return;
+    } else {
+      if (!window.confirm('Are you sure you want to delete this collection?')) return;
+    }
+
+    fetch(`${apiBaseUrl}/collections/${colId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => {
+        if (res.ok) fetchDashboardData();
+      })
+      .catch(err => console.error(err));
+  };
+
+  // Open modal for editing product
   const openEditModal = (product) => {
     setEditProduct(product);
     // Ensure images has length 3
@@ -154,31 +183,40 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
     
     setProdForm({
       name: product.name,
-      category: product.category,
+      category: product.category || '',
       description: product.description,
       price: product.price,
       discount: product.discount || 0,
       images: imgs,
       video: product.video || '',
       colors: product.colors || [],
-      sizes: product.sizes || []
+      sizes: product.sizes || [],
+      collectionId: product.collectionId || '',
+      stock: product.stock !== undefined ? product.stock : true,
+      isNewArrival: product.isNewArrival !== undefined ? product.isNewArrival : false,
+      isActive: product.isActive !== undefined ? product.isActive : true
     });
     setShowModal(true);
   };
 
-  // Open modal for adding
+  // Open modal for adding product
   const openAddModal = () => {
     setEditProduct(null);
+    const defaultCol = collections.length > 0 ? collections[0]._id : '';
     setProdForm({
       name: '',
-      category: 'Bangles',
+      category: collections.length > 0 ? collections[0].name : '',
       description: '',
       price: '',
       discount: 0,
       images: ['', '', ''],
       video: '',
       colors: [],
-      sizes: []
+      sizes: [],
+      collectionId: defaultCol,
+      stock: true,
+      isNewArrival: false,
+      isActive: true
     });
     setShowModal(true);
   };
@@ -186,16 +224,21 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
   // Save product details (Create or Update)
   const handleSaveProduct = (e) => {
     e.preventDefault();
-    if (!prodForm.name || !prodForm.price || !prodForm.category) {
-      alert('Product Name, Price, and Category are required');
+    if (!prodForm.name || !prodForm.price || !prodForm.collectionId) {
+      alert('Product Name, Price, and Collection are required');
       return;
     }
 
     // Filter empty image URLs
     const filteredImages = prodForm.images.filter(url => url.trim() !== '');
 
+    // Resolve category name from collectionId
+    const targetCol = collections.find(c => c._id === prodForm.collectionId);
+    const categoryName = targetCol ? targetCol.name : prodForm.category;
+
     const productPayload = {
       ...prodForm,
+      category: categoryName,
       price: Number(prodForm.price),
       discount: Number(prodForm.discount),
       images: filteredImages
@@ -220,6 +263,69 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
           fetchDashboardData();
         } else {
           alert('Error saving product');
+        }
+      })
+      .catch(err => console.error(err));
+  };
+
+  // Open modal for adding collection
+  const openColAddModal = () => {
+    setEditCollection(null);
+    setColForm({
+      name: '',
+      image: '',
+      description: '',
+      displayOrder: '',
+      isActive: true
+    });
+    setShowColModal(true);
+  };
+
+  // Open modal for editing collection
+  const openColEditModal = (col) => {
+    setEditCollection(col);
+    setColForm({
+      name: col.name,
+      image: col.image || '',
+      description: col.description || '',
+      displayOrder: col.displayOrder || '',
+      isActive: col.isActive !== undefined ? col.isActive : true
+    });
+    setShowColModal(true);
+  };
+
+  // Save collection details (Create or Update)
+  const handleSaveCollection = (e) => {
+    e.preventDefault();
+    if (!colForm.name) {
+      alert('Collection Name is required');
+      return;
+    }
+
+    const payload = {
+      ...colForm,
+      displayOrder: Number(colForm.displayOrder || 0)
+    };
+
+    const method = editCollection ? 'PUT' : 'POST';
+    const url = editCollection 
+      ? `${apiBaseUrl}/collections/${editCollection._id}`
+      : `${apiBaseUrl}/collections`;
+
+    fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(res => {
+        if (res.ok) {
+          setShowColModal(false);
+          fetchDashboardData();
+        } else {
+          alert('Error saving collection');
         }
       })
       .catch(err => console.error(err));
@@ -278,7 +384,7 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
       .catch(err => console.error(err));
   };
 
-  // Custom File Uploader logic (handles up to 3 image files)
+  // File Uploader logic (handles product images)
   const handleFileUpload = (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -301,84 +407,30 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
       .catch(err => alert('File upload failed'));
   };
 
-  // 1. Render Admin Login screen
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="form-container" style={{ animation: 'fadeInUp 0.3s ease-out' }}>
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{
-            display: 'inline-flex',
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            background: 'var(--primary-pink)',
-            color: 'var(--white)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '12px'
-          }}>
-            <Users size={30} />
-          </div>
-          <h2 className="form-title" style={{ color: 'var(--primary-pink)' }}>Admin Portal</h2>
-          <p className="form-subtitle">Login with your credentials to manage products, view orders, and check revenue dashboard.</p>
-        </div>
+  // File Uploader logic (handles collection images)
+  const handleColFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        {errorMsg && (
-          <div style={{
-            background: '#FFE3E3',
-            border: '1px solid #FFCCD5',
-            color: '#D62E4E',
-            padding: '12px',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '13px',
-            fontWeight: '600',
-            marginBottom: '16px',
-            textAlign: 'center'
-          }}>
-            {errorMsg}
-          </div>
-        )}
+    const formData = new FormData();
+    formData.append('files', file);
 
-        <form onSubmit={handleAdminLogin}>
-          <div className="form-group">
-            <label className="form-label">Admin Email</label>
-            <input 
-              type="email" 
-              placeholder="e.g. admin@rainbow.com" 
-              className="form-input" 
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              disabled={loginLoading}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <input 
-              type="password" 
-              placeholder="Enter password" 
-              className="form-input" 
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              disabled={loginLoading}
-              required
-            />
-          </div>
-          <button 
-            type="submit" 
-            className="form-button" 
-            style={{ background: 'var(--primary-pink)', boxShadow: 'none' }}
-            disabled={loginLoading}
-          >
-            {loginLoading ? 'Authenticating...' : 'Sign In'}
-          </button>
-        </form>
-      </div>
-    );
-  }
+    fetch(`${apiBaseUrl}/upload`, {
+      method: 'POST',
+      body: formData
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.urls && data.urls.length > 0) {
+          setColForm(prev => ({ ...prev, image: data.urls[0] }));
+        }
+      })
+      .catch(err => alert('File upload failed'));
+  };
 
   // Calculate Metrics
   const totalProducts = products.length;
+  const totalCollections = collections.length;
   const totalOrders = orders.length;
   
   // Calculate unique customer phones
@@ -388,9 +440,26 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
   // Calculate revenue (sum of all placed orders)
   const revenue = orders.reduce((acc, o) => acc + o.total, 0);
 
-  // 2. Render Admin Dashboard
+  // 1. Render Admin Login guard
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="empty-state" style={{ animation: 'fadeInUp 0.3s ease-out', margin: '40px auto', maxWidth: '500px', padding: '40px 20px', background: '#FFF', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', border: '1.5px solid var(--border-color)', textAlign: 'center' }}>
+        <div style={{ fontSize: '50px', marginBottom: '16px' }}>🔒</div>
+        <h3 style={{ fontFamily: 'Quicksand', fontSize: '20px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '8px' }}>
+          Access Restricted
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+          You do not have administrative privileges to access this dashboard.
+        </p>
+        <button className="btn-primary" onClick={() => setView('home')}>
+          Go to Home
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ animation: 'fadeInUp 0.3s ease-out', background: 'var(--light-pink)', minHeight: 'calc(100vh - 68px)' }}>
+    <div style={{ animation: 'fadeInUp 0.3s ease-out', background: 'var(--light-pink)', minHeight: 'calc(100vh - 68px)', paddingBottom: '40px' }}>
       {/* Admin header */}
       <div className="admin-header">
         <div className="admin-title">🌈 Rainbow Admin</div>
@@ -403,15 +472,15 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
       <div className="admin-metrics">
         <div className="metric-card">
           <div className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Package size={12} /> Products
+            <Package size={12} /> Collections
           </div>
-          <div className="metric-value">{totalProducts}</div>
+          <div className="metric-value">{totalCollections}</div>
         </div>
         <div className="metric-card">
           <div className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ShoppingBag size={12} /> Orders
+            <ShoppingBag size={12} /> Products
           </div>
-          <div className="metric-value">{totalOrders}</div>
+          <div className="metric-value">{totalProducts}</div>
         </div>
         <div className="metric-card">
           <div className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -434,6 +503,12 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
           onClick={() => setActiveTab('orders')}
         >
           Orders Queue ({totalOrders})
+        </button>
+        <button 
+          className={`admin-tab ${activeTab === 'collections' ? 'active' : ''}`}
+          onClick={() => setActiveTab('collections')}
+        >
+          Collections ({totalCollections})
         </button>
         <button 
           className={`admin-tab ${activeTab === 'products' ? 'active' : ''}`}
@@ -480,7 +555,6 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
                           <div className="order-id">#{order._id.substring(order._id.length - 6).toUpperCase()} - <strong>{order.name}</strong></div>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Phone: {order.phone}</div>
                         </div>
-                        {/* Status update selector dropdown */}
                         <select 
                           value={order.status}
                           onChange={(e) => handleUpdateStatus(order._id, e.target.value)}
@@ -500,7 +574,6 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
                         </select>
                       </div>
 
-                      {/* Items */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {order.items.map((item, idx) => {
                           const finalImg = item.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${item.image}` : item.image;
@@ -530,10 +603,78 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
             </div>
           )}
 
-          {/* TAB 2: PRODUCTS CATALOG */}
+          {/* TAB 2: COLLECTIONS MANAGEMENT */}
+          {activeTab === 'collections' && (
+            <div>
+              <div className="admin-action-bar">
+                <button className="btn-primary" onClick={openColAddModal} style={{ padding: '8px 16px', fontSize: '13px', flex: 'none' }}>
+                  <Plus size={15} /> Add New Collection
+                </button>
+              </div>
+
+              <div style={{ padding: '0 20px 24px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {collections.length === 0 ? (
+                  <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No collections created yet.</p>
+                ) : (
+                  collections.map(col => {
+                    const isImageUrl = col.image && (col.image.startsWith('http') || col.image.startsWith('/'));
+                    const finalImg = isImageUrl 
+                      ? (col.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${col.image}` : col.image)
+                      : '';
+                    
+                    return (
+                      <div key={col._id} className="cart-item" style={{ background: '#FFF', display: 'flex', alignItems: 'center' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', background: 'var(--light-pink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>
+                          {isImageUrl ? (
+                            <img src={finalImg} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                          ) : (
+                            col.image || '✨'
+                          )}
+                        </div>
+                        <div className="cart-item-details" style={{ marginLeft: '12px', flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: '700', fontSize: '15px' }}>{col.name}</span>
+                            <span style={{
+                              background: col.isActive ? '#E3FFE6' : '#FFE3E3',
+                              color: col.isActive ? 'var(--success)' : '#D62E4E',
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              padding: '2px 6px',
+                              borderRadius: '8px'
+                            }}>
+                              {col.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                          <div className="cart-item-meta" style={{ fontSize: '12px' }}>Order: <strong>{col.displayOrder || 0}</strong> | {col.description || 'No description'}</div>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <button 
+                            className="cart-item-remove" 
+                            style={{ color: 'var(--primary-pink)', background: 'var(--light-pink)' }}
+                            onClick={() => openColEditModal(col)}
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button 
+                            className="cart-item-remove"
+                            style={{ color: '#D62E4E', background: '#FFE3E3' }}
+                            onClick={() => handleDeleteCollection(col._id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: PRODUCTS CATALOG */}
           {activeTab === 'products' && (
             <div>
-              {/* Quick actions line */}
               <div className="admin-action-bar">
                 <button className="btn-primary" onClick={openAddModal} style={{ padding: '8px 16px', fontSize: '13px', flex: 'none' }}>
                   <Plus size={15} /> Add New Product
@@ -541,60 +682,102 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
               </div>
 
               <div style={{ padding: '0 20px 24px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {products.map(prod => {
-                  const finalImg = prod.images && prod.images.length > 0 
-                    ? (prod.images[0].startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${prod.images[0]}` : prod.images[0])
-                    : 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500';
-                  
-                  return (
-                    <div key={prod._id} className="cart-item" style={{ background: '#FFF' }}>
-                      <img src={finalImg} className="cart-item-img" alt="" />
-                      <div className="cart-item-details">
-                        <span style={{
-                          background: '#EAEAEA',
-                          color: '#555',
-                          fontSize: '10px',
-                          fontWeight: '700',
-                          padding: '2px 6px',
-                          borderRadius: '10px',
-                          display: 'inline-block',
-                          marginBottom: '4px'
-                        }}>
-                          {prod.category}
-                        </span>
-                        <div className="cart-item-name">{prod.name}</div>
-                        <div className="cart-item-meta">{prod.description}</div>
-                        <div className="cart-item-price">₹{prod.price} {prod.discount > 0 ? <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({prod.discount}% off)</span> : ''}</div>
+                {products.length === 0 ? (
+                  <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No products in catalog.</p>
+                ) : (
+                  products.map(prod => {
+                    const finalImg = prod.images && prod.images.length > 0 
+                      ? (prod.images[0].startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${prod.images[0]}` : prod.images[0])
+                      : 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500';
+                    
+                    const productColName = collections.find(c => c._id === prod.collectionId)?.name || prod.category;
+
+                    return (
+                      <div key={prod._id} className="cart-item" style={{ background: '#FFF' }}>
+                        <img src={finalImg} className="cart-item-img" alt="" />
+                        <div className="cart-item-details">
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+                            <span style={{
+                              background: '#EAEAEA',
+                              color: '#555',
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              padding: '2px 6px',
+                              borderRadius: '10px',
+                            }}>
+                              {productColName}
+                            </span>
+                            {prod.isNewArrival && (
+                              <span style={{
+                                background: '#FFF5E3',
+                                color: 'var(--accent-gold)',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                border: '1px solid var(--border-color)'
+                              }}>
+                                ✨ New Arrival
+                              </span>
+                            )}
+                            {prod.stock === false && (
+                              <span style={{
+                                background: '#FFE3E3',
+                                color: '#D62E4E',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                border: '1px solid #FFCCD5'
+                              }}>
+                                ⚠️ Out of Stock
+                              </span>
+                            )}
+                            {prod.isActive === false && (
+                              <span style={{
+                                background: '#EEE',
+                                color: '#777',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '2px 6px',
+                                borderRadius: '10px'
+                              }}>
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <div className="cart-item-name">{prod.name}</div>
+                          <div className="cart-item-meta">{prod.description}</div>
+                          <div className="cart-item-price">₹{prod.price} {prod.discount > 0 ? <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({prod.discount}% off)</span> : ''}</div>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <button 
+                            className="cart-item-remove" 
+                            style={{ color: 'var(--primary-pink)', background: 'var(--light-pink)' }}
+                            onClick={() => openEditModal(prod)}
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button 
+                            className="cart-item-remove"
+                            style={{ color: '#D62E4E', background: '#FFE3E3' }}
+                            onClick={() => handleDeleteProduct(prod._id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
-                      
-                      {/* Edit / Delete triggers */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <button 
-                          className="cart-item-remove" 
-                          style={{ color: 'var(--primary-pink)', background: 'var(--light-pink)' }}
-                          onClick={() => openEditModal(prod)}
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button 
-                          className="cart-item-remove"
-                          style={{ color: '#D62E4E', background: '#FFE3E3' }}
-                          onClick={() => handleDeleteProduct(prod._id)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
 
-          {/* TAB 3: BANNERS SLIDESHOW */}
+          {/* TAB 4: BANNERS SLIDESHOW */}
           {activeTab === 'banners' && (
             <div>
-              {/* Add Banner form */}
               <form onSubmit={handleAddBanner} style={{ padding: '16px 20px', background: '#FFF', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ fontWeight: '700', fontSize: '14px' }}>Add Homepage Slider Banner</div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
@@ -621,7 +804,6 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
                 </button>
               </form>
 
-              {/* Banner slides list */}
               <div className="banner-list">
                 {banners.map((ban, index) => {
                   const finalUrl = ban.url.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${ban.url}` : ban.url;
@@ -647,7 +829,7 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
         </>
       )}
 
-      {/* ADD/EDIT PRODUCT DIALOG DRAWER */}
+      {/* PRODUCT DIALOG DRAWER MODAL */}
       {showModal && (
         <div className="overlay-sheet">
           <div className="drawer-content">
@@ -670,16 +852,26 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
                 />
               </div>
 
-              {/* Category */}
+              {/* Collection select dropdown */}
               <div className="form-group">
-                <label className="form-label">Category *</label>
+                <label className="form-label">Collection *</label>
                 <select 
                   className="form-input"
-                  value={prodForm.category}
-                  onChange={e => setProdForm(prev => ({ ...prev, category: e.target.value }))}
+                  value={prodForm.collectionId}
+                  onChange={e => {
+                    const colId = e.target.value;
+                    const collName = collections.find(c => c._id === colId)?.name || '';
+                    setProdForm(prev => ({ 
+                      ...prev, 
+                      collectionId: colId, 
+                      category: collName // sync category string for backwards compatibility
+                    }));
+                  }}
+                  required
                 >
-                  {CATEGORIES.map((c, i) => (
-                    <option key={i} value={c.name}>{c.name}</option>
+                  <option value="" disabled>-- Select Collection --</option>
+                  {collections.map(c => (
+                    <option key={c._id} value={c._id}>{c.name} {c.isActive ? '' : '(Inactive)'}</option>
                   ))}
                 </select>
               </div>
@@ -722,6 +914,39 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
                 </div>
               </div>
 
+              {/* Checkboxes Row (New Arrival, In Stock, Active) */}
+              <div style={{ display: 'flex', gap: '16px', background: 'var(--light-pink)', padding: '12px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={prodForm.isNewArrival} 
+                    onChange={e => setProdForm(prev => ({ ...prev, isNewArrival: e.target.checked }))}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  />
+                  <span>✨ New Arrival</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={prodForm.stock} 
+                    onChange={e => setProdForm(prev => ({ ...prev, stock: e.target.checked }))}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  />
+                  <span>✅ In Stock</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={prodForm.isActive} 
+                    onChange={e => setProdForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  />
+                  <span>👁️ Enabled</span>
+                </label>
+              </div>
+
               {/* Colors selection */}
               <div className="form-group">
                 <label className="form-label">Available Colors</label>
@@ -744,7 +969,7 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
               </div>
 
               {/* Sizes selection (Bangles only) */}
-              {prodForm.category === 'Bangles' && (
+              {(prodForm.category === 'Bangles' || (collections.find(c => c._id === prodForm.collectionId)?.name === 'Bangles')) && (
                 <div className="form-group">
                   <label className="form-label">Available Sizes (Bangles Only)</label>
                   <div className="checkbox-group">
@@ -784,7 +1009,6 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
                       }}
                     />
                     
-                    {/* File upload input fallback */}
                     <label style={{
                       padding: '12px',
                       background: 'var(--light-pink)',
@@ -821,6 +1045,107 @@ export default function Admin({ user, setUser, token, setToken, apiBaseUrl }) {
 
               <button type="submit" className="form-button" style={{ marginTop: '16px' }}>
                 Save Product
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* COLLECTION DIALOG DRAWER MODAL */}
+      {showColModal && (
+        <div className="overlay-sheet">
+          <div className="drawer-content">
+            <div className="drawer-header">
+              <h3 className="drawer-title">{editCollection ? 'Edit Collection' : 'Add New Collection'}</h3>
+              <button className="close-btn" onClick={() => setShowColModal(false)}><X size={18} /></button>
+            </div>
+
+            <form onSubmit={handleSaveCollection}>
+              {/* Collection Name */}
+              <div className="form-group">
+                <label className="form-label">Collection Name *</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={colForm.name} 
+                  onChange={e => setColForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g. German Silver"
+                  required 
+                />
+              </div>
+
+              {/* Collection Icon/Image */}
+              <div className="form-group">
+                <label className="form-label">Collection Icon (Emoji or Image URL / Upload)</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    style={{ flex: 1 }}
+                    value={colForm.image} 
+                    onChange={e => setColForm(prev => ({ ...prev, image: e.target.value }))}
+                    placeholder="e.g. 💍 or https://example.com/image.jpg" 
+                  />
+                  <label style={{
+                    padding: '12px',
+                    background: 'var(--light-pink)',
+                    borderRadius: '12px',
+                    color: 'var(--primary-pink)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Upload size={16} />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      style={{ display: 'none' }}
+                      onChange={handleColFileUpload}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Optional Description */}
+              <div className="form-group">
+                <label className="form-label">Collection Description (Optional)</label>
+                <textarea 
+                  className="form-input" 
+                  value={colForm.description} 
+                  onChange={e => setColForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe this collection..."
+                  style={{ height: '80px', resize: 'vertical', paddingTop: '8px' }}
+                />
+              </div>
+
+              {/* Display Order */}
+              <div className="form-group">
+                <label className="form-label">Display Order (Lower number displays first)</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={colForm.displayOrder} 
+                  onChange={e => setColForm(prev => ({ ...prev, displayOrder: e.target.value }))}
+                  placeholder="e.g. 1" 
+                />
+              </div>
+
+              {/* Active Toggle */}
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={colForm.isActive} 
+                    onChange={e => setColForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  />
+                  <span>Active Collection (Visible on website)</span>
+                </label>
+              </div>
+
+              <button type="submit" className="form-button" style={{ marginTop: '16px' }}>
+                Save Collection
               </button>
             </form>
           </div>

@@ -23,7 +23,12 @@
       "2.6",
       "2.8"
     ],
-    "id": "o7bnkm63bmsh4130j"
+    "id": "o7bnkm63bmsh4130j",
+    "collectionId": "nt14gkuvlmsr9mhwi",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.486Z"
   },
   {
     "_id": "0h6zjcci6msh4130n",
@@ -42,7 +47,12 @@
       "Silver"
     ],
     "sizes": [],
-    "id": "0h6zjcci6msh4130n"
+    "id": "0h6zjcci6msh4130n",
+    "collectionId": "c4s0cymm4msr9mhwo",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.499Z"
   },
   {
     "_id": "2n98dxw1cmsh4130t",
@@ -60,7 +70,12 @@
       "Gold"
     ],
     "sizes": [],
-    "id": "2n98dxw1cmsh4130t"
+    "id": "2n98dxw1cmsh4130t",
+    "collectionId": "lq15zxptbmsr9mhws",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.503Z"
   },
   {
     "_id": "ikj2ixip4msh41310",
@@ -78,7 +93,12 @@
       "Gold"
     ],
     "sizes": [],
-    "id": "ikj2ixip4msh41310"
+    "id": "ikj2ixip4msh41310",
+    "collectionId": "6ispl4tjqmsr9mhwv",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.507Z"
   },
   {
     "_id": "18cgqufmemsh41313",
@@ -98,7 +118,12 @@
       "Green"
     ],
     "sizes": [],
-    "id": "18cgqufmemsh41313"
+    "id": "18cgqufmemsh41313",
+    "collectionId": "ar95t2umymsr9mhx4",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.511Z"
   },
   {
     "_id": "hevvxgy12msh41317",
@@ -117,7 +142,12 @@
       "Pink"
     ],
     "sizes": [],
-    "id": "hevvxgy12msh41317"
+    "id": "hevvxgy12msh41317",
+    "collectionId": "v8g8boo6pmsr9mhx0",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.516Z"
   },
   {
     "_id": "b3715vts8msh4131d",
@@ -135,7 +165,12 @@
       "Silver"
     ],
     "sizes": [],
-    "id": "b3715vts8msh4131d"
+    "id": "b3715vts8msh4131d",
+    "collectionId": "i9fksxc2tmsr9mhx7",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.519Z"
   },
   {
     "_id": "9jsa7pjfpmsh4131g",
@@ -153,7 +188,12 @@
       "Gold"
     ],
     "sizes": [],
-    "id": "9jsa7pjfpmsh4131g"
+    "id": "9jsa7pjfpmsh4131g",
+    "collectionId": "dc70fgp2ymsr9mhxb",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.520Z"
   },
   {
     "_id": "v7zx579t1msh4131m",
@@ -171,7 +211,12 @@
       "Gold"
     ],
     "sizes": [],
-    "id": "v7zx579t1msh4131m"
+    "id": "v7zx579t1msh4131m",
+    "collectionId": "8scisgu3tmsr9mhxe",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.522Z"
   },
   {
     "_id": "am9voo6vemsh48j26",
@@ -187,6 +232,11 @@
     "video": "",
     "colors": [],
     "sizes": [],
-    "id": "am9voo6vemsh48j26"
+    "id": "am9voo6vemsh48j26",
+    "collectionId": "c4s0cymm4msr9mhwo",
+    "isNewArrival": false,
+    "stock": true,
+    "isActive": true,
+    "updatedAt": "2026-08-13T08:37:48.523Z"
   }
 ]

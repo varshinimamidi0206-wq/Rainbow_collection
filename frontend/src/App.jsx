@@ -5,6 +5,7 @@ import { Home as HomeIcon, ShoppingBag, Package, Phone, ShoppingCart, Menu, X, M
 import Home from './pages/Home';
 import Collections from './pages/Collections';
 import Orders from './pages/Orders';
+import Login from './pages/Login';
 import Contact from './pages/Contact';
 import Admin from './pages/Admin';
 import Cart from './pages/Cart';
@@ -50,14 +51,20 @@ export default function App() {
   useEffect(() => {
     const savedToken = localStorage.getItem('rainbow_token');
     const savedUser = localStorage.getItem('rainbow_user');
+    let loadedUser = null;
     if (savedToken && savedUser) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      loadedUser = JSON.parse(savedUser);
+      setUser(loadedUser);
     }
 
     // Direct url check for admin portal
     if (window.location.pathname === '/admin') {
-      setView('admin');
+      if (loadedUser && loadedUser.role === 'admin') {
+        setView('admin');
+      } else {
+        setView('login');
+      }
     }
   }, []);
 
@@ -99,11 +106,23 @@ export default function App() {
 
   // Switch pages
   const handleNavClick = (newView) => {
-    setView(newView);
+    let targetView = newView;
+    if (newView === 'orders') {
+      if (!token || !user) {
+        targetView = 'login';
+      } else if (user.role === 'admin') {
+        targetView = 'admin';
+      }
+    } else if (newView === 'admin') {
+      if (!token || !user || user.role !== 'admin') {
+        targetView = 'login';
+      }
+    }
+    setView(targetView);
     setMobileMenuOpen(false);
     setCheckoutCart(false);
     setDirectBuyItem(null);
-    if (newView === 'collections') {
+    if (targetView === 'collections') {
       setSelectedCategory(null);
     }
   };
@@ -130,8 +149,16 @@ export default function App() {
           <nav className="desktop-header-nav">
             <button onClick={() => handleNavClick('home')} className={`header-nav-link ${view === 'home' ? 'active' : ''}`}>Home</button>
             <button onClick={() => handleNavClick('collections')} className={`header-nav-link ${view === 'collections' ? 'active' : ''}`}>Collections</button>
-            <button onClick={() => handleNavClick('orders')} className={`header-nav-link ${view === 'orders' ? 'active' : ''}`}>Orders</button>
             <button onClick={() => handleNavClick('contact')} className={`header-nav-link ${view === 'contact' ? 'active' : ''}`}>Contact</button>
+            {token && user ? (
+              user.role === 'admin' ? (
+                <button onClick={() => handleNavClick('admin')} className={`header-nav-link ${view === 'admin' ? 'active' : ''}`}>Admin 👤</button>
+              ) : (
+                <button onClick={() => handleNavClick('orders')} className={`header-nav-link ${view === 'orders' ? 'active' : ''}`}>Account 👤</button>
+              )
+            ) : (
+              <button onClick={() => handleNavClick('login')} className={`header-nav-link ${view === 'login' ? 'active' : ''}`}>Login</button>
+            )}
           </nav>
 
           <div className="header-actions">
@@ -164,9 +191,21 @@ export default function App() {
               <button onClick={() => handleNavClick('collections')} className={`mobile-nav-link ${view === 'collections' ? 'active' : ''}`}>
                 <ShoppingBag size={18} /> Collections
               </button>
-              <button onClick={() => handleNavClick('orders')} className={`mobile-nav-link ${view === 'orders' ? 'active' : ''}`}>
-                <Package size={18} /> Orders
-              </button>
+              {token && user ? (
+                user.role === 'admin' ? (
+                  <button onClick={() => handleNavClick('admin')} className={`mobile-nav-link ${view === 'admin' ? 'active' : ''}`}>
+                    <Package size={18} /> Admin 👤
+                  </button>
+                ) : (
+                  <button onClick={() => handleNavClick('orders')} className={`mobile-nav-link ${view === 'orders' ? 'active' : ''}`}>
+                    <Package size={18} /> Account 👤
+                  </button>
+                )
+              ) : (
+                <button onClick={() => handleNavClick('login')} className={`mobile-nav-link ${view === 'login' ? 'active' : ''}`}>
+                  <Package size={18} /> Login
+                </button>
+              )}
               <button onClick={() => handleNavClick('contact')} className={`mobile-nav-link ${view === 'contact' ? 'active' : ''}`}>
                 <Phone size={18} /> Contact
               </button>
@@ -181,7 +220,9 @@ export default function App() {
           <Home 
             setView={setView} 
             setSelectedCategory={setSelectedCategory} 
-            apiBaseUrl={API_BASE_URL} 
+            addToCart={addToCart}
+            triggerBuyNow={triggerBuyNow}
+            apiBaseUrl={API_BASE_URL}
           />
         )}
 
@@ -225,6 +266,16 @@ export default function App() {
             setUser={setUser}
             token={token}
             setToken={setToken}
+            setView={setView}
+            apiBaseUrl={API_BASE_URL}
+          />
+        )}
+
+        {view === 'login' && (
+          <Login 
+            setUser={setUser}
+            setToken={setToken}
+            setView={setView}
             apiBaseUrl={API_BASE_URL}
           />
         )}
@@ -239,6 +290,7 @@ export default function App() {
             setUser={setUser}
             token={token}
             setToken={setToken}
+            setView={setView}
             apiBaseUrl={API_BASE_URL}
           />
         )}
@@ -263,13 +315,33 @@ export default function App() {
             <span className="nav-item-label">Collections</span>
           </button>
           
-          <button 
-            onClick={() => handleNavClick('orders')}
-            className={`nav-item ${view === 'orders' ? 'active' : ''}`}
-          >
-            <Package className="nav-item-icon" />
-            <span className="nav-item-label">Orders</span>
-          </button>
+          {token && user ? (
+            user.role === 'admin' ? (
+              <button 
+                onClick={() => handleNavClick('admin')}
+                className={`nav-item ${view === 'admin' ? 'active' : ''}`}
+              >
+                <Package className="nav-item-icon" />
+                <span className="nav-item-label">Admin 👤</span>
+              </button>
+            ) : (
+              <button 
+                onClick={() => handleNavClick('orders')}
+                className={`nav-item ${view === 'orders' ? 'active' : ''}`}
+              >
+                <Package className="nav-item-icon" />
+                <span className="nav-item-label">Account 👤</span>
+              </button>
+            )
+          ) : (
+            <button 
+              onClick={() => handleNavClick('login')}
+              className={`nav-item ${view === 'login' ? 'active' : ''}`}
+            >
+              <Package className="nav-item-icon" />
+              <span className="nav-item-label">Login</span>
+            </button>
+          )}
           
           <button 
             onClick={() => handleNavClick('contact')}
@@ -317,7 +389,15 @@ export default function App() {
               <h4>Quick Links</h4>
               <button onClick={() => handleNavClick('home')}>Home</button>
               <button onClick={() => handleNavClick('collections')}>Collections</button>
-              <button onClick={() => handleNavClick('orders')}>Orders</button>
+              {token && user ? (
+                user.role === 'admin' ? (
+                  <button onClick={() => handleNavClick('admin')}>Admin 👤</button>
+                ) : (
+                  <button onClick={() => handleNavClick('orders')}>Account 👤</button>
+                )
+              ) : (
+                <button onClick={() => handleNavClick('login')}>Login</button>
+              )}
               <button onClick={() => handleNavClick('contact')}>Contact Us</button>
             </div>
             <div className="footer-section">

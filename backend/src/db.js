@@ -106,6 +106,15 @@ if (useMongoDB) {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('MongoDB connected successfully.');
 
+    const CollectionSchema = new mongoose.Schema({
+      name: String,
+      image: String,
+      description: String,
+      displayOrder: { type: Number, default: 0 },
+      isActive: { type: Boolean, default: true },
+      createdAt: { type: Date, default: Date.now }
+    });
+
     const ProductSchema = new mongoose.Schema({
       name: String,
       category: String,
@@ -116,12 +125,17 @@ if (useMongoDB) {
       video: String,
       colors: [String],
       sizes: [String],
+      collectionId: String,
+      stock: { type: Boolean, default: true },
+      isNewArrival: { type: Boolean, default: false },
+      isActive: { type: Boolean, default: true },
       createdAt: { type: Date, default: Date.now }
     });
 
     const OrderSchema = new mongoose.Schema({
       name: String,
       phone: String,
+      email: String,
       address: String,
       branch: String,
       paymentMethod: String,
@@ -141,7 +155,11 @@ if (useMongoDB) {
     });
 
     const CustomerSchema = new mongoose.Schema({
-      phone: { type: String, unique: true },
+      email: { type: String, unique: true },
+      password: { type: String }, // hashed password
+      name: String,
+      role: { type: String, default: 'customer' },
+      picture: String,
       createdAt: { type: Date, default: Date.now }
     });
 
@@ -151,6 +169,7 @@ if (useMongoDB) {
       createdAt: { type: Date, default: Date.now }
     });
 
+    db.collections = mongoose.model('Collection', CollectionSchema);
     db.products = mongoose.model('Product', ProductSchema);
     db.orders = mongoose.model('Order', OrderSchema);
     db.customers = mongoose.model('Customer', CustomerSchema);
@@ -165,6 +184,7 @@ if (useMongoDB) {
 }
 
 function initLocalDB() {
+  db.collections = new LocalCollection('collections');
   db.products = new LocalCollection('products');
   db.orders = new LocalCollection('orders');
   db.customers = new LocalCollection('customers');

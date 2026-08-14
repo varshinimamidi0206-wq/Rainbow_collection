@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ShoppingBag, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const CATEGORIES = [
-  { name: 'Bangles', emoji: '💍' },
-  { name: 'Earrings', emoji: '👂' },
-  { name: 'Short Chains', emoji: '📿' },
-  { name: 'Long Chains', emoji: '✨' },
-  { name: 'Hair Accessories', emoji: '🎀' },
-  { name: 'Cosmetics', emoji: '💄' },
-  { name: 'German Silver', emoji: '🪙' },
-  { name: '1 GM Jewellery', emoji: '💎' },
-  { name: 'Rental Jewellery', emoji: '👑' }
-];
-
 export default function Collections({ 
   selectedCategory, 
   setSelectedCategory, 
@@ -22,6 +10,8 @@ export default function Collections({
 }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [collections, setCollections] = useState([]);
+  const [loadingCollections, setLoadingCollections] = useState(false);
   
   // Track active slide index for each product: { [productId]: activeImageIndex }
   const [carouselIndices, setCarouselIndices] = useState({});
@@ -30,18 +20,33 @@ export default function Collections({
   const [bangleSelections, setBangleSelections] = useState({});
   const [warningMessage, setWarningMessage] = useState(null);
 
-  // Fetch products when selectedCategory changes
+  // Fetch collections on mount
+  useEffect(() => {
+    setLoadingCollections(true);
+    fetch(`${apiBaseUrl}/collections?active=true`)
+      .then(res => res.json())
+      .then(data => {
+        setCollections(data || []);
+        setLoadingCollections(false);
+      })
+      .catch(err => {
+        console.error('Error fetching collections:', err);
+        setLoadingCollections(false);
+      });
+  }, [apiBaseUrl]);
+
+  // Fetch products when selectedCategory (collectionId) changes
   useEffect(() => {
     if (!selectedCategory) return;
     setLoading(true);
-    fetch(`${apiBaseUrl}/products?category=${encodeURIComponent(selectedCategory)}`)
+    fetch(`${apiBaseUrl}/products?collectionId=${encodeURIComponent(selectedCategory)}&active=true`)
       .then(res => res.json())
       .then(data => {
-        setProducts(data);
+        setProducts(data || []);
         // Initialize carousel indices
         const indices = {};
         const selections = {};
-        data.forEach(p => {
+        (data || []).forEach(p => {
           indices[p._id] = 0;
           selections[p._id] = { size: '', color: '' };
         });
@@ -85,7 +90,10 @@ export default function Collections({
   };
 
   const handleAddCart = (product) => {
-    if (product.category === 'Bangles') {
+    const isBangles = product.category === 'Bangles' || 
+      (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
+
+    if (isBangles) {
       const selection = bangleSelections[product._id];
       if (!selection || !selection.size || !selection.color) {
         setWarningMessage(`Please choose Size & Color for ${product.name}`);
@@ -98,7 +106,10 @@ export default function Collections({
   };
 
   const handleBuyNow = (product) => {
-    if (product.category === 'Bangles') {
+    const isBangles = product.category === 'Bangles' || 
+      (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
+
+    if (isBangles) {
       const selection = bangleSelections[product._id];
       if (!selection || !selection.size || !selection.color) {
         setWarningMessage(`Please choose Size & Color for ${product.name}`);
@@ -110,7 +121,7 @@ export default function Collections({
     }
   };
 
-  // 1. Render Categories View
+  // 1. Render Collections List View
   if (!selectedCategory) {
     return (
       <div style={{ animation: 'fadeInUp 0.3s ease-out' }}>
@@ -123,21 +134,60 @@ export default function Collections({
           </p>
         </div>
 
-        <div className="category-grid">
-          {CATEGORIES.map((cat, idx) => (
-            <div 
-              key={idx} 
-              className="category-card"
-              onClick={() => setSelectedCategory(cat.name)}
-            >
-              <div className="category-icon">{cat.emoji}</div>
-              <div className="category-title">{cat.name}</div>
-            </div>
-          ))}
-        </div>
+        {loadingCollections ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ 
+              display: 'inline-block', 
+              width: '32px', 
+              height: '32px', 
+              border: '4px solid var(--border-color)', 
+              borderTopColor: 'var(--primary-pink)', 
+              borderRadius: '50%',
+              animation: 'pulse-ring 1s infinite linear'
+            }}></div>
+          </div>
+        ) : collections.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <p style={{ color: 'var(--text-muted)' }}>No collections found.</p>
+          </div>
+        ) : (
+          <div className="category-grid">
+            {collections.map(cat => {
+              const isImageUrl = cat.image && (cat.image.startsWith('http') || cat.image.startsWith('/'));
+              const finalImgUrl = isImageUrl ? (cat.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${cat.image}` : cat.image) : '';
+              return (
+                <div 
+                  key={cat._id} 
+                  className="category-card"
+                  onClick={() => setSelectedCategory(cat._id)}
+                >
+                  <div className="category-icon">
+                    {isImageUrl ? (
+                      <img 
+                        src={finalImgUrl} 
+                        alt={cat.name} 
+                        style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      cat.image || '✨'
+                    )}
+                  </div>
+                  <div className="category-title">{cat.name}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
+
+  // Find info about the selected collection
+  const selectedColl = collections.find(c => c._id === selectedCategory);
+  const selectedCollName = selectedColl ? selectedColl.name : '';
+  const selectedCollImage = selectedColl ? selectedColl.image : '✨';
+  const isSelectedCollImageUrl = selectedCollImage && (selectedCollImage.startsWith('http') || selectedCollImage.startsWith('/'));
+  const finalSelectedCollImgUrl = isSelectedCollImageUrl ? (selectedCollImage.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${selectedCollImage}` : selectedCollImage) : '';
 
   // 2. Render Products View within Category
   return (
@@ -147,9 +197,13 @@ export default function Collections({
         <button className="back-btn" onClick={() => setSelectedCategory(null)}>
           <ArrowLeft size={20} />
         </button>
-        <span className="category-title-text">
-          {CATEGORIES.find(c => c.name === selectedCategory)?.emoji || '✨'}{' '}
-          {selectedCategory}
+        <span className="category-title-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isSelectedCollImageUrl ? (
+            <img src={finalSelectedCollImgUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            selectedCollImage || '✨'
+          )}{' '}
+          {selectedCollName}
         </span>
       </div>
 
@@ -210,8 +264,13 @@ export default function Collections({
               ? Math.round(product.price / (1 - product.discount / 100))
               : null;
 
+            const isBangles = product.category === 'Bangles' || 
+              (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
+
+            const isOutOfStock = product.stock === false;
+
             return (
-              <div key={product._id} className="product-card">
+              <div key={product._id} className="product-card" style={{ position: 'relative' }}>
                 {/* Image Carousel */}
                 <div className="product-carousel">
                   <div 
@@ -257,6 +316,23 @@ export default function Collections({
                       />
                     ))}
                   </div>
+
+                  {/* Out of Stock badge overlay */}
+                  {isOutOfStock && (
+                    <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}>
+                      <span style={{
+                        background: '#FFE3E3',
+                        border: '1px solid #FFCCD5',
+                        color: '#D62E4E',
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        padding: '4px 8px',
+                        borderRadius: '8px'
+                      }}>
+                        Out of Stock
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Product details */}
@@ -275,7 +351,7 @@ export default function Collections({
                   </div>
 
                   {/* Bangle selectors */}
-                  {product.category === 'Bangles' && (
+                  {isBangles && (
                     <div style={{
                       background: 'var(--light-pink)',
                       padding: '12px',
@@ -318,16 +394,20 @@ export default function Collections({
                   {/* Buy / Cart Action buttons */}
                   <div className="action-row">
                     <button 
-                      onClick={() => handleBuyNow(product)}
+                      onClick={() => isOutOfStock ? null : handleBuyNow(product)}
                       className="btn-primary"
+                      disabled={isOutOfStock}
+                      style={isOutOfStock ? { background: '#ccc', cursor: 'not-allowed' } : {}}
                     >
-                      <ShoppingBag size={18} /> BUY NOW
+                      <ShoppingBag size={18} /> {isOutOfStock ? 'OUT OF STOCK' : 'BUY NOW'}
                     </button>
                     <button 
-                      onClick={() => handleAddCart(product)}
+                      onClick={() => isOutOfStock ? null : handleAddCart(product)}
                       className="btn-secondary"
+                      disabled={isOutOfStock}
+                      style={isOutOfStock ? { borderColor: '#ccc', color: '#999', cursor: 'not-allowed' } : {}}
                     >
-                      <ShoppingCart size={18} /> ADD CART
+                      <ShoppingCart size={18} /> {isOutOfStock ? 'SOLD OUT' : 'ADD CART'}
                     </button>
                   </div>
                 </div>

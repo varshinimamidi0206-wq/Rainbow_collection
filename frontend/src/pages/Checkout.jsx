@@ -59,6 +59,7 @@ export default function Checkout({
     const orderPayload = {
       name,
       phone,
+      email: user?.email || '',
       address,
       branch,
       paymentMethod,

@@ -41,8 +41,7 @@ if (isCloudinaryConfigured) {
   });
 }
 
-// Temporary in-memory OTP store (phone -> { otp, expires })
-const otpStore = new Map();
+// Auth setup
 
 // Helper to check authentication
 export const authenticateToken = (roles = []) => {
@@ -69,84 +68,253 @@ export const authenticateToken = (roles = []) => {
    AUTHENTICATION ROUTES
    ========================================================================== */
 
-// 1. Customer OTP Request
-router.post('/auth/customer/send-otp', async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) return res.status(400).json({ message: 'Phone number is required' });
+// 1. Customer Registration
+router.post('/auth/customer/register', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'All fields (name, email, password) are required' });
+    }
+    const sanitizedEmail = email.toLowerCase().trim();
+    
+    const existingUser = await db.customers.findOne({ email: sanitizedEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: 'An account with this email already exists' });
+    }
 
-  // Generate a simple 6-digit OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore.set(phone, { otp, expires: Date.now() + 5 * 60 * 1000 }); // 5 mins expiry
+    const salt = await bcryptjs.genSalt(10);
+    const hashedPassword = await bcryptjs.hash(password, salt);
 
-  console.log(`[OTP] Generated OTP for customer ${phone}: ${otp}`);
+    const role = sanitizedEmail === 'varshinimamidi0206@gmail.com' ? 'admin' : 'customer';
 
-  // Return OTP in response in dev mode so the user/admin can test easily without real SMS
-  res.json({ 
-    message: 'OTP sent successfully (Simulated)', 
-    otp: otp // Included for seamless frontend testing
-  });
+    const newUser = await db.customers.create({
+      name,
+      email: sanitizedEmail,
+      password: hashedPassword,
+      role
+    });
+
+    res.status(201).json({ message: 'User registered successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// 2. Customer OTP Login
+// 2. Customer/Admin Email Login
 router.post('/auth/customer/login', async (req, res) => {
-  const { phone, otp } = req.body;
-  if (!phone || !otp) return res.status(400).json({ message: 'Phone and OTP are required' });
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    const sanitizedEmail = email.toLowerCase().trim();
 
-  const record = otpStore.get(phone);
-  if (!record || record.expires < Date.now()) {
-    return res.status(400).json({ message: 'OTP expired or not requested' });
+    const user = await db.customers.findOne({ email: sanitizedEmail });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({ message: 'This email is registered using Google Sign-In. Please click Continue with Google.' });
+    }
+
+    const isMatch = await bcryptjs.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    const role = sanitizedEmail === 'varshinimamidi0206@gmail.com' ? 'admin' : (user.role || 'customer');
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role, name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        email: user.email,
+        name: user.name,
+        role,
+        picture: user.picture || ''
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
+});
 
-  if (record.otp !== otp) {
-    return res.status(400).json({ message: 'Invalid OTP' });
+// 3. Google Sign-In Login
+router.post('/auth/google/login', async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: 'Google ID Token is required' });
+    }
+
+    const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`;
+    const verifyRes = await fetch(verifyUrl);
+    if (!verifyRes.ok) {
+      return res.status(400).json({ message: 'Invalid Google token' });
+    }
+
+    const payload = await verifyRes.json();
+    const { email, name, picture, email_verified } = payload;
+
+    if (!email_verified) {
+      return res.status(400).json({ message: 'Google email is not verified' });
+    }
+
+    const sanitizedEmail = email.toLowerCase().trim();
+    const role = sanitizedEmail === 'varshinimamidi0206@gmail.com' ? 'admin' : 'customer';
+
+    let user = await db.customers.findOne({ email: sanitizedEmail });
+    if (!user) {
+      user = await db.customers.create({
+        email: sanitizedEmail,
+        name: name || '',
+        picture: picture || '',
+        role
+      });
+    } else {
+      await db.customers.findByIdAndUpdate(user._id, {
+        name: name || user.name,
+        picture: picture || user.picture,
+        role
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role, name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        email: user.email,
+        name: user.name,
+        role,
+        picture: user.picture || ''
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
+});
 
-  // OTP verified, clear it
-  otpStore.delete(phone);
-
-  // Check or register customer
-  let customer = await db.customers.findOne({ phone });
-  if (!customer) {
-    customer = await db.customers.create({ phone });
-  }
-
-  // Create JWT
-  const token = jwt.sign({ phone, role: 'customer' }, JWT_SECRET, { expiresIn: '7d' });
-
+// 4. Config variables endpoint
+router.get('/config', (req, res) => {
   res.json({
-    token,
-    user: { phone, role: 'customer' }
+    googleClientId: process.env.GOOGLE_CLIENT_ID || ''
   });
 });
 
-// 3. Admin Login
-router.post('/auth/admin/login', async (req, res) => {
-  const { email, password } = req.body;
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@rainbow.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+/* ==========================================================================
+   COLLECTIONS ROUTES
+   ========================================================================== */
 
-  if (email !== adminEmail || password !== adminPassword) {
-    return res.status(401).json({ message: 'Invalid Admin Email or Password' });
+// Get all collections
+router.get('/collections', async (req, res) => {
+  try {
+    const { active } = req.query;
+    const filter = active === 'true' ? { isActive: true } : {};
+    const collections = await db.collections.find(filter);
+    // Sort by displayOrder ascending
+    collections.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    res.json(collections);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
+});
 
-  const token = jwt.sign({ email, role: 'admin' }, JWT_SECRET, { expiresIn: '1d' });
+// Get single collection
+router.get('/collections/:id', async (req, res) => {
+  try {
+    const collection = await db.collections.findById(req.params.id);
+    if (!collection) return res.status(404).json({ message: 'Collection not found' });
+    res.json(collection);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
-  res.json({
-    token,
-    user: { email, role: 'admin' }
-  });
+// Add new collection (Admin only)
+router.post('/collections', authenticateToken(['admin']), async (req, res) => {
+  try {
+    const { name, image, description, displayOrder, isActive } = req.body;
+    if (!name) return res.status(400).json({ message: 'Collection name is required' });
+
+    const collection = await db.collections.create({
+      name,
+      image: image || '',
+      description: description || '',
+      displayOrder: Number(displayOrder || 0),
+      isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
+    });
+    res.status(201).json(collection);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Edit collection (Admin only)
+router.put('/collections/:id', authenticateToken(['admin']), async (req, res) => {
+  try {
+    const { name, image, description, displayOrder, isActive } = req.body;
+    if (!name) return res.status(400).json({ message: 'Collection name is required' });
+
+    const updated = await db.collections.findByIdAndUpdate(req.params.id, {
+      name,
+      image: image || '',
+      description: description || '',
+      displayOrder: Number(displayOrder || 0),
+      isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
+    });
+
+    if (!updated) return res.status(404).json({ message: 'Collection not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete collection (Admin only)
+router.delete('/collections/:id', authenticateToken(['admin']), async (req, res) => {
+  try {
+    const deleted = await db.collections.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Collection not found' });
+    res.json({ message: 'Collection deleted successfully', deleted });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 /* ==========================================================================
    PRODUCTS ROUTES
    ========================================================================== */
 
-// Get all products (with category filter)
+// Get all products (with category, collectionId, isNewArrival, active filters)
 router.get('/products', async (req, res) => {
   try {
-    const { category } = req.query;
-    const filter = category ? { category } : {};
-    const products = await db.products.find(filter);
+    const { category, collectionId, isNewArrival, active } = req.query;
+    const filter = {};
+    if (category) filter.category = category;
+    if (collectionId) filter.collectionId = collectionId;
+    if (isNewArrival !== undefined) {
+      filter.isNewArrival = isNewArrival === 'true';
+    }
+    if (active === 'true') {
+      filter.isActive = true;
+    }
+
+    let products = await db.products.find(filter);
+
+    // Sort products by date descending (newest first)
+    products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -167,22 +335,38 @@ router.get('/products/:id', async (req, res) => {
 // Add new product (Admin only)
 router.post('/products', authenticateToken(['admin']), async (req, res) => {
   try {
-    const { name, category, description, price, discount, images, video, colors, sizes } = req.body;
-    
+    const { 
+      name, category, description, price, discount, images, video, colors, sizes, 
+      collectionId, stock, isNewArrival, isActive 
+    } = req.body;
+
     const parsedColors = Array.isArray(colors) ? colors : (colors ? JSON.parse(colors) : []);
     const parsedSizes = Array.isArray(sizes) ? sizes : (sizes ? JSON.parse(sizes) : []);
     const parsedImages = Array.isArray(images) ? images : (images ? JSON.parse(images) : []);
 
+    // Resolve category name from collectionId for backward compatibility
+    let resolvedCategory = category || 'Bangles';
+    if (collectionId) {
+      const coll = await db.collections.findById(collectionId);
+      if (coll) {
+        resolvedCategory = coll.name;
+      }
+    }
+
     const product = await db.products.create({
       name,
-      category,
+      category: resolvedCategory,
       description: description || `Beautiful ${name}`,
       price: Number(price),
       discount: Number(discount || 0),
       images: parsedImages,
       video: video || '',
       colors: parsedColors,
-      sizes: parsedSizes
+      sizes: parsedSizes,
+      collectionId: collectionId || '',
+      stock: stock !== undefined ? (stock === 'true' || stock === true) : true,
+      isNewArrival: isNewArrival !== undefined ? (isNewArrival === 'true' || isNewArrival === true) : false,
+      isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
     });
     res.status(201).json(product);
   } catch (error) {
@@ -193,24 +377,40 @@ router.post('/products', authenticateToken(['admin']), async (req, res) => {
 // Edit product (Admin only)
 router.put('/products/:id', authenticateToken(['admin']), async (req, res) => {
   try {
-    const { name, category, description, price, discount, images, video, colors, sizes } = req.body;
-    
+    const { 
+      name, category, description, price, discount, images, video, colors, sizes, 
+      collectionId, stock, isNewArrival, isActive 
+    } = req.body;
+
     const parsedColors = Array.isArray(colors) ? colors : (colors ? JSON.parse(colors) : []);
     const parsedSizes = Array.isArray(sizes) ? sizes : (sizes ? JSON.parse(sizes) : []);
     const parsedImages = Array.isArray(images) ? images : (images ? JSON.parse(images) : []);
 
+    // Resolve category name from collectionId for backward compatibility
+    let resolvedCategory = category;
+    if (collectionId) {
+      const coll = await db.collections.findById(collectionId);
+      if (coll) {
+        resolvedCategory = coll.name;
+      }
+    }
+
     const updated = await db.products.findByIdAndUpdate(req.params.id, {
       name,
-      category,
+      category: resolvedCategory,
       description,
       price: Number(price),
       discount: Number(discount || 0),
       images: parsedImages,
       video: video || '',
       colors: parsedColors,
-      sizes: parsedSizes
+      sizes: parsedSizes,
+      collectionId: collectionId || '',
+      stock: stock !== undefined ? (stock === 'true' || stock === true) : true,
+      isNewArrival: isNewArrival !== undefined ? (isNewArrival === 'true' || isNewArrival === true) : false,
+      isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
     });
-    
+
     if (!updated) return res.status(404).json({ message: 'Product not found' });
     res.json(updated);
   } catch (error) {
@@ -233,17 +433,17 @@ router.delete('/products/:id', authenticateToken(['admin']), async (req, res) =>
    ORDERS ROUTES
    ========================================================================== */
 
-// Get orders (Admins see all; Customers see only theirs by phone header/query)
+// Get orders (Admins see all; Customers see only theirs by email)
 router.get('/orders', authenticateToken(['admin', 'customer']), async (req, res) => {
   try {
     let orders;
     if (req.user.role === 'admin') {
       orders = await db.orders.find({});
     } else {
-      orders = await db.orders.find({ phone: req.user.phone });
+      orders = await db.orders.find({ email: req.user.email });
     }
     
-    // Sort orders by date descending (manual sort since custom JSON db doesn't sort natively)
+    // Sort orders by date descending
     orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json(orders);
   } catch (error) {
@@ -254,7 +454,7 @@ router.get('/orders', authenticateToken(['admin', 'customer']), async (req, res)
 // Place order (Customers or Guest)
 router.post('/orders', async (req, res) => {
   try {
-    const { name, phone, address, branch, paymentMethod, items, total } = req.body;
+    const { name, phone, email, address, branch, paymentMethod, items, total } = req.body;
     if (!name || !phone || !address || !branch || !paymentMethod || !items || items.length === 0) {
       return res.status(400).json({ message: 'Missing order details' });
     }
@@ -262,6 +462,7 @@ router.post('/orders', async (req, res) => {
     const order = await db.orders.create({
       name,
       phone,
+      email: email || '',
       address,
       branch,
       paymentMethod,
@@ -269,12 +470,6 @@ router.post('/orders', async (req, res) => {
       total: Number(total),
       status: 'Pending'
     });
-
-    // Also register customer if not exists
-    let customer = await db.customers.findOne({ phone });
-    if (!customer) {
-      await db.customers.create({ phone });
-    }
 
     res.status(201).json(order);
   } catch (error) {
@@ -388,7 +583,36 @@ export const seedDatabase = async () => {
     console.log('Seeded initial homepage banners.');
   }
 
-  // 2. Seed Products
+  // 2. Seed Collections if empty
+  const collectionCount = await db.collections.countDocuments();
+  if (collectionCount === 0) {
+    const initialCollections = [
+      { name: 'Bangles', image: '💍', displayOrder: 1 },
+      { name: 'Earrings', image: '👂', displayOrder: 2 },
+      { name: 'Short Chains', image: '📿', displayOrder: 3 },
+      { name: 'Long Chains', image: '✨', displayOrder: 4 },
+      { name: 'Cosmetics', image: '💄', displayOrder: 5 },
+      { name: 'Hair Accessories', image: '🎀', displayOrder: 6 },
+      { name: 'German Silver', image: '🪙', displayOrder: 7 },
+      { name: '1 GM Jewellery', image: '💎', displayOrder: 8 },
+      { name: 'Rental Jewellery', image: '👑', displayOrder: 9 }
+    ];
+    for (const c of initialCollections) {
+      await db.collections.create({
+        name: c.name,
+        image: c.image,
+        description: `Premium collection of ${c.name}`,
+        displayOrder: c.displayOrder,
+        isActive: true
+      });
+    }
+    console.log('Seeded initial collections.');
+  }
+
+  // Fetch collections to map categories
+  const allCollections = await db.collections.find({});
+
+  // 3. Seed Products if empty
   const productCount = await db.products.countDocuments();
   if (productCount === 0) {
     const initialProducts = [
@@ -404,7 +628,10 @@ export const seedDatabase = async () => {
         ],
         video: '',
         colors: ['Gold', 'Rose Gold', 'Silver'],
-        sizes: ['2.2', '2.4', '2.6', '2.8']
+        sizes: ['2.2', '2.4', '2.6', '2.8'],
+        isNewArrival: true,
+        stock: true,
+        isActive: true
       },
       {
         name: 'Traditional Jhumkas',
@@ -415,7 +642,10 @@ export const seedDatabase = async () => {
         images: ['https://images.unsplash.com/photo-1630019852942-f89202989a59?w=500'],
         video: '',
         colors: ['Gold', 'Silver'],
-        sizes: []
+        sizes: [],
+        isNewArrival: true,
+        stock: true,
+        isActive: true
       },
       {
         name: 'Short Choker Chain',
@@ -426,7 +656,10 @@ export const seedDatabase = async () => {
         images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500'],
         video: '',
         colors: ['Gold'],
-        sizes: []
+        sizes: [],
+        isNewArrival: true,
+        stock: true,
+        isActive: true
       },
       {
         name: 'Designer Haram Set',
@@ -437,7 +670,10 @@ export const seedDatabase = async () => {
         images: ['https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=500'],
         video: '',
         colors: ['Gold'],
-        sizes: []
+        sizes: [],
+        isNewArrival: false,
+        stock: true,
+        isActive: true
       },
       {
         name: 'Velvet Hair Bow Clip',
@@ -448,7 +684,10 @@ export const seedDatabase = async () => {
         images: ['https://images.unsplash.com/photo-1606156137806-d345a4e037f3?w=500'],
         video: '',
         colors: ['Red', 'Pink', 'Green'],
-        sizes: []
+        sizes: [],
+        isNewArrival: false,
+        stock: true,
+        isActive: true
       },
       {
         name: 'Matte Liquid Lipstick',
@@ -459,7 +698,10 @@ export const seedDatabase = async () => {
         images: ['https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500'],
         video: '',
         colors: ['Red', 'Pink'],
-        sizes: []
+        sizes: [],
+        isNewArrival: false,
+        stock: true,
+        isActive: true
       },
       {
         name: 'German Silver Oxidised Set',
@@ -470,7 +712,10 @@ export const seedDatabase = async () => {
         images: ['https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500'],
         video: '',
         colors: ['Silver'],
-        sizes: []
+        sizes: [],
+        isNewArrival: false,
+        stock: true,
+        isActive: true
       },
       {
         name: '1 GM Gold Plated Necklace',
@@ -481,7 +726,10 @@ export const seedDatabase = async () => {
         images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500'],
         video: '',
         colors: ['Gold'],
-        sizes: []
+        sizes: [],
+        isNewArrival: false,
+        stock: true,
+        isActive: true
       },
       {
         name: 'Heavy Bridal Haram Rental',
@@ -492,20 +740,88 @@ export const seedDatabase = async () => {
         images: ['https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?w=500'],
         video: '',
         colors: ['Gold'],
-        sizes: []
+        sizes: [],
+        isNewArrival: false,
+        stock: true,
+        isActive: true
       }
     ];
     for (const p of initialProducts) {
-      await db.products.create(p);
+      const match = allCollections.find(c => c.name.toLowerCase() === (p.category || '').toLowerCase());
+      await db.products.create({
+        ...p,
+        collectionId: match ? match._id : ''
+      });
     }
-    console.log('Seeded initial products catalog.');
+    console.log('Seeded initial products catalog with collections.');
   }
 
-  // 3. Seed an initial admin user record to customers if needed (admin is handle separately but nice to have customer record)
-  const customerCount = await db.customers.countDocuments();
-  if (customerCount === 0) {
-    await db.customers.create({ phone: '9999999999' });
-    console.log('Seeded initial customer.');
+  // 4. Migrate / link any products that do not have collectionId, isNewArrival, isActive, or stock set
+  const allProducts = await db.products.find({});
+  for (const p of allProducts) {
+    let needsUpdate = false;
+    const updateData = {};
+
+    if (!p.collectionId) {
+      const match = allCollections.find(c => c.name.toLowerCase() === (p.category || '').toLowerCase());
+      if (match) {
+        updateData.collectionId = match._id;
+        needsUpdate = true;
+      }
+    }
+    if (p.isNewArrival === undefined) {
+      updateData.isNewArrival = false;
+      needsUpdate = true;
+    }
+    if (p.stock === undefined) {
+      updateData.stock = true;
+      needsUpdate = true;
+    }
+    if (p.isActive === undefined) {
+      updateData.isActive = true;
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      await db.products.findByIdAndUpdate(p._id, updateData);
+    }
+  }
+
+  // 5. Seed initial admin and test customer if db is empty
+  const adminUser = await db.customers.findOne({ email: 'varshinimamidi0206@gmail.com' });
+  if (!adminUser) {
+    const salt = await bcryptjs.genSalt(10);
+    const hashedPassword = await bcryptjs.hash('admin123', salt);
+    await db.customers.create({
+      name: 'Admin',
+      email: 'varshinimamidi0206@gmail.com',
+      password: hashedPassword,
+      role: 'admin'
+    });
+    console.log('Seeded admin user.');
+  }
+
+  const testCustomer = await db.customers.findOne({ email: 'customer@rainbow.com' });
+  if (!testCustomer) {
+    const salt = await bcryptjs.genSalt(10);
+    const hashedPassword = await bcryptjs.hash('password123', salt);
+    await db.customers.create({
+      name: 'Test Customer',
+      email: 'customer@rainbow.com',
+      password: hashedPassword,
+      role: 'customer'
+    });
+    console.log('Seeded test customer user.');
+  }
+
+  // 6. Migrate existing orders to default customer email
+  const allOrders = await db.orders.find({});
+  for (const order of allOrders) {
+    if (!order.email) {
+      await db.orders.findByIdAndUpdate(order._id, {
+        email: 'customer@rainbow.com'
+      });
+    }
   }
 };
 

@@ -2,8 +2,9 @@
 
 - [x] Initialize frontend and backend folder structures
 - [x] Set up Backend dependencies and configuration files (`package.json`, `.env`)
-- [x] Create Backend Database interface `db.js` (MongoDB with local JSON-file fallback)
-- [x] Create Backend controller logic, mock initial data, and routes
+- [x] Update backend database schema in `db.js`
+- [x] Implement Collections CRUD routes and Product route changes in `routes.js`
+- [x] Add dynamic database seeding and migration in `routes.js`
 - [x] Create Frontend project using Vite + React template
 - [x] Implement CSS design system in `index.css` (Pink + White + Gold palette, animations)
 - [x] Set up React Router / View Router and global context state in `App.jsx`
