@@ -34,6 +34,8 @@ const Instagram = ({ size = 20 }) => (
 export default function App() {
   const [view, setView] = useState('home'); // home, collections, orders, contact, cart, checkout, admin
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [adminTab, setAdminTab] = useState('dashboard'); // dashboard, products, add-product, orders, collections, banners
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Authentication State
@@ -86,15 +88,110 @@ export default function App() {
       setUser(loadedUser);
     }
 
-    // Direct url check for admin portal
+    // Initialize SPA routing from URL hash or path
+    const initialHash = window.location.hash || '#home';
+    const cleanHash = initialHash.substring(1);
+    let initialView = 'home';
+    let initialCategory = null;
+    let initialAdminTab = 'dashboard';
+
+    // Support legacy pathname check for /admin
     if (window.location.pathname === '/admin') {
       if (loadedUser && loadedUser.role === 'admin') {
-        setView('admin');
+        initialView = 'admin';
       } else {
-        setView('login');
+        initialView = 'login';
+      }
+    } else {
+      if (cleanHash.startsWith('collections')) {
+        initialView = 'collections';
+        const parts = cleanHash.split('-');
+        if (parts.length > 1) {
+          initialCategory = parts[1];
+        }
+      } else if (cleanHash.startsWith('admin')) {
+        initialView = 'admin';
+        const parts = cleanHash.split('-');
+        if (parts.length > 1) {
+          initialAdminTab = parts[1];
+        }
+      } else {
+        initialView = cleanHash || 'home';
       }
     }
+
+    setView(initialView);
+    setSelectedCategory(initialCategory);
+    setAdminTab(initialAdminTab);
+
+    // Replace initial state in history
+    window.history.replaceState({
+      view: initialView,
+      selectedCategory: initialCategory,
+      selectedProduct: null,
+      adminTab: initialAdminTab
+    }, '', window.location.pathname === '/admin' ? '#admin' : initialHash);
+
+    // Popstate event handler
+    const handlePopState = (event) => {
+      if (event.state) {
+        setView(event.state.view || 'home');
+        setSelectedCategory(event.state.selectedCategory || null);
+        setSelectedProduct(event.state.selectedProduct || null);
+        setAdminTab(event.state.adminTab || 'dashboard');
+      } else {
+        const hash = window.location.hash || '#home';
+        const cleanHash = hash.substring(1);
+        let currentView = 'home';
+        let currentCategory = null;
+        let currentAdminTab = 'dashboard';
+        
+        if (cleanHash.startsWith('collections')) {
+          currentView = 'collections';
+          const parts = cleanHash.split('-');
+          if (parts.length > 1) {
+            currentCategory = parts[1];
+          }
+        } else if (cleanHash.startsWith('admin')) {
+          currentView = 'admin';
+          const parts = cleanHash.split('-');
+          if (parts.length > 1) {
+            currentAdminTab = parts[1];
+          }
+        } else {
+          currentView = cleanHash || 'home';
+        }
+        
+        setView(currentView);
+        setSelectedCategory(currentCategory);
+        setSelectedProduct(null);
+        setAdminTab(currentAdminTab);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Synchronize state changes to browser history hash
+  useEffect(() => {
+    let hash = `#${view}`;
+    if (view === 'collections' && selectedCategory) {
+      hash += `-${selectedCategory}`;
+    }
+    if (view === 'home' && selectedProduct) {
+      hash += `-product-${selectedProduct._id || selectedProduct.id}`;
+    }
+    if (view === 'admin') {
+      hash += `-${adminTab}`;
+    }
+    
+    const state = { view, selectedCategory, selectedProduct, adminTab };
+    const currentHash = window.location.hash || '#home';
+    if (currentHash !== hash) {
+      window.history.pushState(state, '', hash);
+    }
+  }, [view, selectedCategory, selectedProduct, adminTab]);
 
 
 
@@ -284,6 +381,8 @@ export default function App() {
             addToCart={addToCart}
             triggerBuyNow={triggerBuyNow}
             apiBaseUrl={API_BASE_URL}
+            selectedProduct={selectedProduct}
+            setSelectedProduct={setSelectedProduct}
           />
         )}
 
@@ -353,6 +452,8 @@ export default function App() {
             setToken={setToken}
             setView={setView}
             apiBaseUrl={API_BASE_URL}
+            activeTab={adminTab}
+            setActiveTab={setAdminTab}
           />
         )}
 

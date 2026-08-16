@@ -9,6 +9,8 @@ import { db } from './db.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretrainbowkey123';
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'varshinimamidi0206@gmail.com').toLowerCase().trim();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 // Configure Multer for File Uploads
 const uploadsDir = path.resolve('public/uploads');
@@ -112,7 +114,7 @@ router.post('/auth/customer/register', async (req, res) => {
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
 
-    const role = sanitizedEmail === 'varshinimamidi0206@gmail.com' ? 'admin' : 'customer';
+    const role = sanitizedEmail === ADMIN_EMAIL ? 'admin' : 'customer';
 
     const newUser = await db.customers.create({
       name,
@@ -150,7 +152,7 @@ router.post('/auth/customer/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    const role = sanitizedEmail === 'varshinimamidi0206@gmail.com' ? 'admin' : (user.role || 'customer');
+    const role = sanitizedEmail === ADMIN_EMAIL ? 'admin' : (user.role || 'customer');
 
     const token = jwt.sign(
       { id: user._id, email: user.email, role, name: user.name },
@@ -205,7 +207,7 @@ router.post('/auth/google/login', async (req, res) => {
     }
 
     const sanitizedEmail = email.toLowerCase().trim();
-    const role = sanitizedEmail === 'varshinimamidi0206@gmail.com' ? 'admin' : 'customer';
+    const role = sanitizedEmail === ADMIN_EMAIL ? 'admin' : 'customer';
 
     let user = await db.customers.findOne({ email: sanitizedEmail });
     if (!user) {
@@ -909,13 +911,13 @@ export const seedDatabase = async () => {
   }
 
   // 5. Seed initial admin and test customer if db is empty
-  const adminUser = await db.customers.findOne({ email: 'varshinimamidi0206@gmail.com' });
+  const adminUser = await db.customers.findOne({ email: ADMIN_EMAIL });
   if (!adminUser) {
     const salt = await bcryptjs.genSalt(10);
-    const hashedPassword = await bcryptjs.hash('admin123', salt);
+    const hashedPassword = await bcryptjs.hash(ADMIN_PASSWORD, salt);
     await db.customers.create({
       name: 'Admin',
-      email: 'varshinimamidi0206@gmail.com',
+      email: ADMIN_EMAIL,
       password: hashedPassword,
       role: 'admin'
     });

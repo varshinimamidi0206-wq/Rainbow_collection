@@ -248,7 +248,30 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-16T14:01:56.163Z",
+    "updatedAt": "2026-08-16T14:22:24.922Z",
     "code": "RC-EAR-002"
+  },
+  {
+    "_id": "luzp9tofbmsw5lzux",
+    "createdAt": "2026-08-16T18:44:17.481Z",
+    "name": "Test Ring",
+    "code": "RC-RNG-999",
+    "category": "Bangles",
+    "description": "Test Description",
+    "price": 2500,
+    "discount": 0,
+    "images": [
+      "/uploads/1786905837809-124405826.jpeg"
+    ],
+    "video": "",
+    "colors": [
+      "Maroon"
+    ],
+    "sizes": [],
+    "collectionId": "nt14gkuvlmsr9mhwi",
+    "stock": true,
+    "isNewArrival": false,
+    "isActive": true,
+    "id": "luzp9tofbmsw5lzux"
   }
 ]

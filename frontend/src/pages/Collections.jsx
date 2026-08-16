@@ -161,15 +161,17 @@ export default function Collections({
                   className="category-card"
                   onClick={() => setSelectedCategory(cat._id)}
                 >
-                  <div className="category-icon">
+                  <div className="category-image-container">
                     {isImageUrl ? (
                       <img 
                         src={finalImgUrl} 
                         alt={cat.name} 
-                        style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover' }} 
+                        className="category-img"
                       />
                     ) : (
-                      cat.image || '✨'
+                      <div className="category-img-fallback">
+                        {cat.image || '✨'}
+                      </div>
                     )}
                   </div>
                   <div className="category-title">{cat.name}</div>

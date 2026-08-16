@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ShoppingCart, ShoppingBag, Eye, X } from 'lucide-react';
 
-export default function Home({ setView, setSelectedCategory, addToCart, triggerBuyNow, apiBaseUrl }) {
+export default function Home({ setView, setSelectedCategory, addToCart, triggerBuyNow, apiBaseUrl, selectedProduct, setSelectedProduct }) {
   const [banners, setBanners] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   
@@ -17,10 +17,17 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
   const [warningMessage, setWarningMessage] = useState(null);
 
   // Detail Modal popup state
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalImageIndex, setModalImageIndex] = useState(0);
   const [modalBangleSelection, setModalBangleSelection] = useState({ size: '', color: '' });
   const [modalWarning, setModalWarning] = useState(null);
+
+  useEffect(() => {
+    if (selectedProduct) {
+      setModalImageIndex(0);
+      setModalBangleSelection({ size: '', color: '' });
+      setModalWarning(null);
+    }
+  }, [selectedProduct]);
 
   // Fallback banners in case API fails or is empty
   const defaultBanners = [
@@ -282,15 +289,14 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
                 className="scroll-card"
                 onClick={() => handleCollectionClick(col._id)}
               >
-                <div className="scroll-emoji">
+                <div className="scroll-image-container">
                   {isImageUrl ? (
                     <img 
                       src={finalImgUrl} 
                       alt={col.name} 
-                      style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }} 
                     />
                   ) : (
-                    col.image || '✨'
+                    <span className="scroll-image-fallback">{col.image || '✨'}</span>
                   )}
                 </div>
                 <div className="scroll-name">{col.name}</div>
