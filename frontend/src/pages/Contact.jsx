@@ -42,14 +42,13 @@ export default function Contact() {
           <InstagramIcon size={18} /> Social & Chat Support
         </h3>
         
-        {/* Instagram button */}
         <a 
-          href="https://instagram.com" 
+          href="https://www.instagram.com/rainbow_collection_india/" 
           target="_blank" 
           rel="noopener noreferrer" 
           className="contact-social-btn instagram"
         >
-          <InstagramIcon size={20} /> Rainbow Collection India
+          <InstagramIcon size={20} /> @rainbow_collection_india
         </a>
 
 

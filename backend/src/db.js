@@ -117,6 +117,7 @@ if (useMongoDB) {
 
     const ProductSchema = new mongoose.Schema({
       name: String,
+      code: { type: String, unique: true },
       category: String,
       description: String,
       price: Number,

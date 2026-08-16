@@ -47,6 +47,34 @@ export default function App() {
   const [checkoutCart, setCheckoutCart] = useState(false);
   const [directBuyItem, setDirectBuyItem] = useState(null);
 
+  // Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchBangleSelection, setSearchBangleSelection] = useState({ size: '', color: '' });
+
+  const handleSearchCode = () => {
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+    fetch(`${API_BASE_URL}/products/code/${encodeURIComponent(searchQuery.trim())}`)
+      .then(async res => {
+        if (res.status === 404) {
+          setSearchResult('not_found');
+          return;
+        }
+        if (!res.ok) throw new Error();
+        const prod = await res.json();
+        setSearchResult(prod);
+        setSearchBangleSelection({ size: '', color: '' });
+      })
+      .catch(() => {
+        setSearchResult('not_found');
+      })
+      .finally(() => {
+        setSearchLoading(false);
+      });
+  };
+
   // Check login session & route path on launch
   useEffect(() => {
     const savedToken = localStorage.getItem('rainbow_token');
@@ -216,6 +244,39 @@ export default function App() {
 
       {/* Main Pages Content */}
       <main style={{ flex: 1 }}>
+        {(view === 'home' || view === 'collections') && (
+          <div className="search-bar-container" style={{
+            padding: '16px 20px',
+            background: '#FFF',
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <input 
+              type="text" 
+              placeholder="Search by product code" 
+              className="form-input" 
+              style={{ maxWidth: '400px', margin: 0, height: '42px', fontSize: '14px' }}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSearchCode();
+              }}
+            />
+            <button 
+              onClick={handleSearchCode}
+              className="btn-primary" 
+              disabled={searchLoading}
+              style={{ flex: 'none', height: '42px', padding: '0 24px', margin: 0, borderRadius: 'var(--radius-md)' }}
+            >
+              {searchLoading ? '...' : 'Search'}
+            </button>
+          </div>
+        )}
+
         {view === 'home' && (
           <Home 
             setView={setView} 
@@ -294,6 +355,160 @@ export default function App() {
             apiBaseUrl={API_BASE_URL}
           />
         )}
+
+        {searchResult && (
+          <div className="overlay-sheet" onClick={() => setSearchResult(null)} style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+            <div className="drawer-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', width: '100%', borderRadius: 'var(--radius-lg)', padding: '20px', position: 'relative', animation: 'fadeInUp 0.3s ease-out' }}>
+              <div className="drawer-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                <h3 className="drawer-title" style={{ fontFamily: 'Quicksand', fontWeight: '700', color: 'var(--primary-pink)' }}>Search Result</h3>
+                <button className="close-btn" onClick={() => setSearchResult(null)}><X size={20} /></button>
+              </div>
+
+              {searchResult === 'not_found' ? (
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔍</div>
+                  <p style={{ fontSize: '16px', fontWeight: '600', color: 'var(--primary-pink)' }}>Product not found</p>
+                </div>
+              ) : (
+                <div style={{ marginTop: '15px' }}>
+                  {searchResult.images && searchResult.images.length > 0 && (
+                     <img 
+                       src={searchResult.images[0].startsWith('/') ? `${API_BASE_URL.replace('/api', '')}${searchResult.images[0]}` : searchResult.images[0]} 
+                       alt={searchResult.name}
+                       style={{ width: '100%', height: '240px', objectFit: 'cover', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}
+                     />
+                  )}
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{
+                      background: 'var(--primary-pink)', // Royal Purple theme
+                      color: 'var(--light-pink)',
+                      border: '2px solid var(--accent-gold)', // Gold border
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '800',
+                      letterSpacing: '0.5px',
+                      display: 'inline-block'
+                    }}>
+                      CODE: {searchResult.code}
+                    </span>
+                  </div>
+
+                  <h3 style={{ fontFamily: 'Quicksand', fontSize: '20px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '6px' }}>
+                    {searchResult.name}
+                  </h3>
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
+                    {searchResult.description}
+                  </p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+                    <span style={{ fontSize: '22px', fontWeight: '800', color: 'var(--primary-pink)' }}>
+                      ₹{searchResult.price}
+                    </span>
+                    {searchResult.discount > 0 && (
+                      <>
+                        <span style={{ fontSize: '14px', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                          ₹{Math.round(searchResult.price / (1 - searchResult.discount / 100))}
+                        </span>
+                        <span style={{
+                          background: 'var(--accent-gold)',
+                          color: 'var(--white)',
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          padding: '2px 6px',
+                          borderRadius: '6px'
+                        }}>
+                          {searchResult.discount}% OFF
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Size/color selectors for Bangles category */}
+                  {searchResult.category === 'Bangles' && (
+                    <div style={{
+                      background: 'var(--light-pink)',
+                      padding: '12px',
+                      borderRadius: 'var(--radius-md)',
+                      marginBottom: '16px',
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      <div className="selector-group">
+                        <span className="selector-label">Choose Size:</span>
+                        <div className="options-row">
+                          {((searchResult.sizes && searchResult.sizes.length > 0) ? searchResult.sizes : ['2.2', '2.4', '2.6', '2.8']).map(sz => (
+                            <button
+                              key={sz}
+                              type="button"
+                              className={`option-pill ${searchBangleSelection.size === sz ? 'active' : ''}`}
+                              onClick={() => setSearchBangleSelection(prev => ({ ...prev, size: sz }))}
+                            >
+                              {sz}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="selector-group" style={{ marginBottom: 0 }}>
+                        <span className="selector-label">Choose Color:</span>
+                        <div className="options-row">
+                          {((searchResult.colors && searchResult.colors.length > 0) ? searchResult.colors : ['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red']).map(col => (
+                            <button
+                              key={col}
+                              type="button"
+                              className={`option-pill ${searchBangleSelection.color === col ? 'active' : ''}`}
+                              onClick={() => setSearchBangleSelection(prev => ({ ...prev, color: col }))}
+                            >
+                              {col}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                      onClick={() => {
+                        if (searchResult.category === 'Bangles' && (!searchBangleSelection.size || !searchBangleSelection.color)) {
+                          alert('Please select both Size & Color first');
+                          return;
+                        }
+                        const col = searchBangleSelection.color;
+                        const sz = searchBangleSelection.size;
+                        setSearchResult(null);
+                        triggerBuyNow(searchResult, col, sz);
+                      }}
+                      className="btn-primary"
+                      style={{ flex: 1, margin: 0 }}
+                      disabled={searchResult.stock === false}
+                    >
+                      Buy Now
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (searchResult.category === 'Bangles' && (!searchBangleSelection.size || !searchBangleSelection.color)) {
+                          alert('Please select both Size & Color first');
+                          return;
+                        }
+                        const col = searchBangleSelection.color;
+                        const sz = searchBangleSelection.size;
+                        addToCart(searchResult, col, sz);
+                        setSearchResult(null);
+                      }}
+                      className="btn-secondary"
+                      style={{ flex: 1, margin: 0 }}
+                      disabled={searchResult.stock === false}
+                    >
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Sticky Bottom Navigation (Hidden on Admin screen) */}
@@ -366,7 +581,7 @@ export default function App() {
             <MessageSquare size={22} />
           </a>
           <a 
-            href="https://instagram.com" 
+            href="https://www.instagram.com/rainbow_collection_india/" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="floating-btn instagram-floating"

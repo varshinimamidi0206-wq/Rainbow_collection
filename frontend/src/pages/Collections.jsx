@@ -362,7 +362,7 @@ export default function Collections({
                       <div className="selector-group">
                         <span className="selector-label">Choose Size:</span>
                         <div className="options-row">
-                          {['2.2', '2.4', '2.6', '2.8'].map(sz => (
+                          {((product.sizes && product.sizes.length > 0) ? product.sizes : ['2.2', '2.4', '2.6', '2.8']).map(sz => (
                             <button
                               key={sz}
                               className={`option-pill ${bangleSelections[product._id]?.size === sz ? 'active' : ''}`}
@@ -377,7 +377,7 @@ export default function Collections({
                       <div className="selector-group" style={{ marginBottom: 0 }}>
                         <span className="selector-label">Choose Color:</span>
                         <div className="options-row">
-                          {['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red'].map(col => (
+                          {((product.colors && product.colors.length > 0) ? product.colors : ['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red']).map(col => (
                             <button
                               key={col}
                               className={`option-pill ${bangleSelections[product._id]?.color === col ? 'active' : ''}`}

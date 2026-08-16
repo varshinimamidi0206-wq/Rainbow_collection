@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle, CreditCard, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function Checkout({ 
   cart, 
@@ -12,16 +12,18 @@ export default function Checkout({
   user,
   apiBaseUrl 
 }) {
-  // Form input fields (prefilled with user phone if logged in)
-  const [name, setName] = useState('');
+  // Prefill name and phone if user is logged in
+  const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [address, setAddress] = useState('');
-  const [branch, setBranch] = useState('Kadapa');
-  const [paymentMethod, setPaymentMethod] = useState('Cash On Delivery');
+  const [pincode, setPincode] = useState('');
+  const [street, setStreet] = useState('');
+  const [villageCity, setVillageCity] = useState('');
+  const [stateValue, setStateValue] = useState('');
+  const [branch, setBranch] = useState('Kadapa'); // Kadapa / Kakinada
+  const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery'); // Cash on Delivery / UPI
   
-  // Checkout state management
   const [submitting, setSubmitting] = useState(false);
-  const [paymentStep, setPaymentStep] = useState('form'); // form, processing, success
+  const [paymentStep, setPaymentStep] = useState('form'); // form, success
   const [placedOrder, setPlacedOrder] = useState(null);
 
   // Compile items to buy
@@ -29,6 +31,7 @@ export default function Checkout({
     ? cart.map(item => ({
         productId: item._id,
         name: item.name,
+        code: item.code || '',
         price: item.price,
         image: item.images && item.images.length > 0 ? item.images[0] : '',
         color: item.color || '',
@@ -38,6 +41,7 @@ export default function Checkout({
       ? [{
           productId: directBuyItem._id,
           name: directBuyItem.name,
+          code: directBuyItem.code || '',
           price: directBuyItem.price,
           image: directBuyItem.image,
           color: directBuyItem.color || '',
@@ -49,52 +53,71 @@ export default function Checkout({
 
   const handleSubmitOrder = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !phone || phone.length < 10 || !address.trim()) {
-      alert('Please fill out all billing details correctly');
+    if (
+      !name.trim() || 
+      !phone || 
+      phone.length < 10 || 
+      !pincode.trim() || 
+      !street.trim() || 
+      !villageCity.trim() || 
+      !stateValue.trim()
+    ) {
+      alert('Please fill out all fields correctly');
       return;
     }
 
     setSubmitting(true);
 
+    const fullAddress = `${street.trim()}, ${villageCity.trim()}, ${stateValue.trim()} - ${pincode.trim()}`;
+
     const orderPayload = {
-      name,
-      phone,
+      name: name.trim(),
+      phone: phone.trim(),
       email: user?.email || '',
-      address,
+      address: fullAddress,
       branch,
       paymentMethod,
       items: itemsToBuy,
       total: totalAmount
     };
 
-    // If online payment, show Razorpay simulation
-    if (paymentMethod !== 'Cash On Delivery') {
-      setPaymentStep('processing');
-      // Simulate Razorpay payment gateway screen loading
-      setTimeout(async () => {
-        try {
-          const res = await saveOrderToBackend(orderPayload);
-          setPlacedOrder(res);
-          setPaymentStep('success');
-          if (checkoutCart) clearCart();
-        } catch (err) {
-          alert('Error placing order. Please try again.');
-          setPaymentStep('form');
-        }
-        setSubmitting(false);
-      }, 2000);
-    } else {
-      // Cash on delivery - direct submission
-      try {
-        const res = await saveOrderToBackend(orderPayload);
-        setPlacedOrder(res);
-        setPaymentStep('success');
-        if (checkoutCart) clearCart();
-      } catch (err) {
-        alert('Error placing order. Please try again.');
-      }
-      setSubmitting(false);
+    try {
+      // 1. Save the order to backend DB
+      const res = await saveOrderToBackend(orderPayload);
+      setPlacedOrder(res);
+      if (checkoutCart) clearCart();
+
+      // 2. Prepare the WhatsApp click-to-chat message
+      let msg = `Rainbow Collection Order\n\n`;
+      itemsToBuy.forEach((item, idx) => {
+        msg += `Item: ${item.name}\n`;
+        if (item.code) msg += `Code: ${item.code}\n`;
+        msg += `Price: ₹${item.price}\n`;
+        if (item.size) msg += `Size: ${item.size}\n`;
+        if (item.color) msg += `Color: ${item.color}\n`;
+        if (idx < itemsToBuy.length - 1) msg += `\n`;
+      });
+      msg += `\n`;
+      msg += `Name: ${name.trim()}\n`;
+      msg += `Phone: ${phone.trim()}\n\n`;
+      msg += `Address:\n`;
+      msg += `Pincode: ${pincode.trim()}\n`;
+      msg += `Street: ${street.trim()}\n`;
+      msg += `Village/City: ${villageCity.trim()}\n`;
+      msg += `State: ${stateValue.trim()}\n\n`;
+      msg += `Nearest Showroom: ${branch}\n`;
+      msg += `Payment: ${paymentMethod}`;
+
+      // 3. Open WhatsApp click-to-chat URL
+      const waUrl = `https://wa.me/918919590533?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, '_blank');
+
+      setPaymentStep('success');
+    } catch (err) {
+      console.error(err);
+      alert('Error placing order. Please try again.');
     }
+    setSubmitting(false);
   };
 
   const saveOrderToBackend = async (payload) => {
@@ -118,80 +141,12 @@ export default function Checkout({
   };
 
   const handleFinish = () => {
-    // Go to Orders view
     setDirectBuyItem(null);
     setCheckoutCart(false);
     setView('orders');
   };
 
-  // 1. Razorpay Payment Gateway Simulation Screen
-  if (paymentStep === 'processing') {
-    return (
-      <div style={{
-        padding: '40px 20px',
-        textAlign: 'center',
-        background: '#FFF',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '80vh',
-        animation: 'fadeInUp 0.3s ease-out'
-      }}>
-        {/* Razorpay badge style */}
-        <div style={{
-          background: '#020C1B',
-          color: '#FFF',
-          padding: '12px 28px',
-          borderRadius: '30px',
-          fontFamily: 'sans-serif',
-          fontWeight: '700',
-          fontSize: '14px',
-          letterSpacing: '1px',
-          marginBottom: '32px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-        }}>
-          💳 razorpay <span style={{ color: '#3399FF' }}>checkout</span>
-        </div>
-
-        <div style={{
-          display: 'inline-block',
-          width: '50px',
-          height: '50px',
-          border: '4px solid var(--border-color)',
-          borderTopColor: '#3399FF',
-          borderRadius: '50%',
-          animation: 'pulse-ring 1s infinite linear',
-          marginBottom: '24px'
-        }}></div>
-
-        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
-          Opening UPI Payment Portal...
-        </h3>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '300px', lineHeight: '1.4' }}>
-          Please do not press back or refresh. We are securely processing your payment of <strong>₹{totalAmount}</strong>.
-        </p>
-
-        <div style={{
-          marginTop: '40px',
-          padding: '12px 16px',
-          background: '#F5F5FA',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '11px',
-          color: '#555',
-          border: '1px solid #E5E5EA'
-        }}>
-          <ShieldAlert size={14} style={{ color: 'var(--success)' }} />
-          Secure payment transaction verified by Razorpay UPI Shield
-        </div>
-      </div>
-    );
-  }
-
-  // 2. Order Success Confirmation Screen
+  // Success view
   if (paymentStep === 'success' && placedOrder) {
     return (
       <div style={{
@@ -221,69 +176,120 @@ export default function Checkout({
         </div>
 
         <h2 style={{ fontFamily: 'Quicksand', fontSize: '24px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '8px' }}>
-          Order Placed! 🎉
+          Order Confirmed! 🎉
         </h2>
         <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '32px' }}>
-          Thank you for shopping at Rainbow Collection. Your order was successfully saved.
+          Your order has been recorded and redirected to WhatsApp.
         </p>
 
-        {/* Order Details box */}
         <div style={{
           width: '100%',
+          maxWidth: '420px',
           background: 'var(--light-pink)',
-          border: '1px solid var(--border-color)',
+          border: '1.5px solid var(--border-color)',
           borderRadius: 'var(--radius-md)',
           padding: '16px',
           textAlign: 'left',
           marginBottom: '32px',
-          fontSize: '13px',
+          fontSize: '13.5px',
           lineHeight: '1.6'
         }}>
           <div style={{ fontWeight: '700', fontSize: '15px', borderBottom: '1px dashed var(--border-color)', paddingBottom: '8px', marginBottom: '8px', color: 'var(--primary-pink)' }}>
-            Showroom Bill Summary
+            Order Summary
           </div>
           <div>👤 Customer: <strong>{placedOrder.name}</strong></div>
           <div>📱 Phone: <strong>{placedOrder.phone}</strong></div>
-          <div>📍 Branch Store: <strong>{placedOrder.branch}</strong></div>
+          <div>📍 nearest Showroom: <strong>{placedOrder.branch}</strong></div>
           <div>💳 Payment: <strong>{placedOrder.paymentMethod}</strong></div>
           <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '8px', marginTop: '8px', fontWeight: '700', display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
-            <span>Amount Paid:</span>
+            <span>Total Bill:</span>
             <span style={{ color: 'var(--primary-pink)' }}>₹{placedOrder.total}</span>
           </div>
         </div>
 
-        <button onClick={handleFinish} className="btn-primary" style={{ width: '100%' }}>
-          Track Order Delivery Status 📦
+        <button onClick={handleFinish} className="btn-primary" style={{ width: '100%', maxWidth: '420px', height: '48px', fontSize: '14px', fontWeight: '700' }}>
+          Track Order Status 📦
         </button>
       </div>
     );
   }
 
-  // 3. Billing form layout
   return (
-    <div style={{ animation: 'fadeInUp 0.3s ease-out' }}>
-      {/* Back button */}
+    <div style={{ animation: 'fadeInUp 0.3s ease-out', paddingBottom: '40px' }}>
+      {/* Header bar */}
       <div className="category-info-bar">
-        <button className="back-btn" onClick={handleBack}>
+        <button className="back-btn" onClick={handleBack} aria-label="Go back">
           <ArrowLeft size={20} />
         </button>
-        <span className="category-title-text">Billing Details</span>
+        <span className="category-title-text" style={{ fontFamily: 'Quicksand', fontWeight: '700' }}>Checkout Details</span>
       </div>
 
-      <div className="form-container">
-        <h3 style={{ fontFamily: 'Quicksand', fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>Checkout Order</h3>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-          Please fill your shipping address to dispatch items.
+      <div className="form-container" style={{ maxWidth: '500px', margin: '20px auto', padding: '24px 16px' }}>
+        
+        {/* Product details card at the top */}
+        <div style={{
+          background: '#FFF',
+          border: '1.5px solid var(--border-color)',
+          borderRadius: 'var(--radius-md)',
+          padding: '16px',
+          marginBottom: '24px',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{ 
+            fontFamily: 'Quicksand',
+            fontWeight: '700', 
+            fontSize: '15px', 
+            color: 'var(--primary-pink)', 
+            marginBottom: '12px', 
+            borderBottom: '1px solid #EEE', 
+            paddingBottom: '8px' 
+          }}>
+            Product Details
+          </div>
+          {itemsToBuy.map((item, idx) => (
+            <div key={idx} style={{ display: 'flex', gap: '12px', marginBottom: idx < itemsToBuy.length - 1 ? '16px' : 0, alignItems: 'center' }}>
+              {item.image && (
+                <img 
+                  src={item.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${item.image}` : item.image} 
+                  style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '8px' }}
+                  alt="" 
+                />
+              )}
+              <div style={{ flex: 1, fontSize: '13.5px', lineHeight: '1.4' }}>
+                <div style={{ fontWeight: '700', color: 'var(--text-dark)' }}>{item.name}</div>
+                {item.code && (
+                  <div style={{ fontSize: '12px' }}>Code: <strong style={{ color: 'var(--primary-pink)' }}>{item.code}</strong></div>
+                )}
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {item.color ? `Color: ${item.color}` : ''}
+                  {item.color && item.size ? ' | ' : ''}
+                  {item.size ? `Size: ${item.size}` : ''}
+                </div>
+                <div style={{ fontWeight: '700', color: 'var(--accent-gold)' }}>₹{item.price}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ borderTop: '1px solid #EEE', paddingTop: '10px', marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: '15px' }}>
+            <span>Total Bill:</span>
+            <span style={{ color: 'var(--primary-pink)' }}>₹{totalAmount}</span>
+          </div>
+        </div>
+
+        <h3 style={{ fontFamily: 'Quicksand', fontSize: '18px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '8px' }}>Delivery Address</h3>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+          Provide details below to confirm your order and redirect to WhatsApp.
         </p>
 
-        <form onSubmit={handleSubmitOrder}>
-          {/* Name */}
+        <form onSubmit={handleSubmitOrder} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          
+          {/* Customer Name */}
           <div className="form-group">
-            <label className="form-label">Full Name *</label>
+            <label className="form-label" style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Name *</label>
             <input 
               type="text" 
-              placeholder="Enter your name" 
+              placeholder="Enter your full name" 
               className="form-input"
+              style={{ height: '46px', fontSize: '14px', borderRadius: '10px' }}
               value={name}
               onChange={e => setName(e.target.value)}
               disabled={submitting}
@@ -291,97 +297,133 @@ export default function Checkout({
             />
           </div>
 
-          {/* Phone */}
+          {/* Phone Number */}
           <div className="form-group">
-            <label className="form-label">Mobile Number *</label>
+            <label className="form-label" style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Phone Number *</label>
             <input 
               type="tel" 
               maxLength="10"
               placeholder="10-digit mobile number" 
               className="form-input"
+              style={{ height: '46px', fontSize: '14px', borderRadius: '10px' }}
               value={phone}
               onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-              disabled={submitting || (user && user.phone)} // Lock if logged in
-              required
-            />
-          </div>
-
-          {/* Shipping address */}
-          <div className="form-group">
-            <label className="form-label">Delivery Address *</label>
-            <textarea 
-              rows="3"
-              placeholder="Enter complete address, street name, house number, area" 
-              className="form-input"
-              style={{ resize: 'none' }}
-              value={address}
-              onChange={e => setAddress(e.target.value)}
               disabled={submitting}
               required
             />
           </div>
 
-          {/* Retail store branch */}
+          {/* Pincode */}
           <div className="form-group">
-            <label className="form-label">Select Nearest Branch Showroom</label>
+            <label className="form-label" style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Pincode *</label>
+            <input 
+              type="text" 
+              placeholder="Enter 6-digit Pincode" 
+              className="form-input"
+              style={{ height: '46px', fontSize: '14px', borderRadius: '10px' }}
+              value={pincode}
+              onChange={e => setPincode(e.target.value.replace(/\D/g, ''))}
+              disabled={submitting}
+              required
+            />
+          </div>
+
+          {/* Street */}
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Street *</label>
+            <input 
+              type="text" 
+              placeholder="Street Name, House No., Area" 
+              className="form-input"
+              style={{ height: '46px', fontSize: '14px', borderRadius: '10px' }}
+              value={street}
+              onChange={e => setStreet(e.target.value)}
+              disabled={submitting}
+              required
+            />
+          </div>
+
+          {/* Village / City */}
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Village / City *</label>
+            <input 
+              type="text" 
+              placeholder="Enter Village or City" 
+              className="form-input"
+              style={{ height: '46px', fontSize: '14px', borderRadius: '10px' }}
+              value={villageCity}
+              onChange={e => setVillageCity(e.target.value)}
+              disabled={submitting}
+              required
+            />
+          </div>
+
+          {/* State */}
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>State *</label>
+            <input 
+              type="text" 
+              placeholder="Enter State Name" 
+              className="form-input"
+              style={{ height: '46px', fontSize: '14px', borderRadius: '10px' }}
+              value={stateValue}
+              onChange={e => setStateValue(e.target.value)}
+              disabled={submitting}
+              required
+            />
+          </div>
+
+          {/* Nearest Showroom Selection */}
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Nearest Showroom *</label>
             <select 
               className="form-input"
+              style={{ height: '46px', fontSize: '14px', borderRadius: '10px', cursor: 'pointer' }}
               value={branch}
               onChange={e => setBranch(e.target.value)}
               disabled={submitting}
+              required
             >
-              <option value="Kadapa">📍 Kadapa Branch (YV Street)</option>
-              <option value="Kakinada">📍 Kakinada Branch</option>
+              <option value="Kadapa">Kadapa (YV Street)</option>
+              <option value="Kakinada">Kakinada</option>
             </select>
           </div>
 
-          {/* Payment method selector */}
+          {/* Payment Method Option */}
           <div className="form-group">
-            <label className="form-label">Choose Payment Option</label>
+            <label className="form-label" style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>Payment Option *</label>
             <select 
               className="form-input"
+              style={{ height: '46px', fontSize: '14px', borderRadius: '10px', cursor: 'pointer' }}
               value={paymentMethod}
               onChange={e => setPaymentMethod(e.target.value)}
               disabled={submitting}
+              required
             >
-              <option value="Cash On Delivery">💵 Cash On Delivery (COD)</option>
-              <option value="UPI">💳 BHIM UPI QR Code</option>
-              <option value="PhonePe">💳 PhonePe UPI</option>
-              <option value="Google Pay">💳 Google Pay (GPay)</option>
+              <option value="Cash on Delivery">Cash on Delivery</option>
+              <option value="UPI">UPI</option>
             </select>
           </div>
 
-          {/* Checkout items summary */}
-          <div style={{
-            background: '#FAFAFA',
-            border: '1px solid var(--border-color)',
-            padding: '16px',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '24px',
-            fontSize: '13px'
-          }}>
-            <div style={{ fontWeight: '700', marginBottom: '8px', color: 'var(--text-dark)' }}>Order Item Listing:</div>
-            {itemsToBuy.map((item, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--text-muted)' }}>
-                <span>
-                  {item.name} 
-                  {item.color || item.size ? ` (${item.color || ''} ${item.size || ''})` : ''}
-                </span>
-                <span style={{ fontWeight: '600', color: 'var(--text-dark)' }}>₹{item.price}</span>
-              </div>
-            ))}
-            <div style={{ borderTop: '1px solid #EEE', paddingTop: '8px', marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: '15px' }}>
-              <span>Total Bill:</span>
-              <span style={{ color: 'var(--primary-pink)' }}>₹{totalAmount}</span>
-            </div>
-          </div>
-
+          {/* CONFIRM ORDER button */}
           <button 
             type="submit" 
             className="form-button"
             disabled={submitting}
+            style={{ 
+              height: '52px', 
+              fontSize: '16px', 
+              fontWeight: '700', 
+              borderRadius: '12px', 
+              marginTop: '12px',
+              cursor: 'pointer',
+              background: 'var(--primary-pink)',
+              color: 'var(--white)',
+              boxShadow: 'var(--shadow-md)',
+              border: 'none'
+            }}
           >
-            {submitting ? 'Placing Order...' : `Confirm Purchase (₹${totalAmount})`}
+            {submitting ? 'Verifying...' : 'CONFIRM ORDER'}
           </button>
         </form>
       </div>

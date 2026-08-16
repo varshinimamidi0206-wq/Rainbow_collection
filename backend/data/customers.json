@@ -28,5 +28,23 @@
     "password": "$2a$10$rJXu/wFVMcPjLQBr0Os./.coPwZr7aupSwX7rSCPoLcha92/y9/Mq",
     "role": "customer",
     "id": "osum19lnymsrbtol8"
+  },
+  {
+    "_id": "1l7rrkyemmsvvdoxv",
+    "createdAt": "2026-08-16T13:57:53.923Z",
+    "email": "googlecustomer@rainbow.com",
+    "name": "Google Customer",
+    "picture": "",
+    "role": "customer",
+    "id": "1l7rrkyemmsvvdoxv"
+  },
+  {
+    "_id": "wwviwo5vimsvvucry",
+    "createdAt": "2026-08-16T14:10:51.310Z",
+    "name": "Admin User",
+    "email": "admin@rainbow.com",
+    "password": "$2a$10$S79.xSYn0tvfXOdKF.s6PO55yO5BmBfZbhbsJsheC1gea66fKeCja",
+    "role": "customer",
+    "id": "wwviwo5vimsvvucry"
   }
 ]

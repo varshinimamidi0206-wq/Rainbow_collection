@@ -28,7 +28,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.486Z"
+    "updatedAt": "2026-08-16T13:53:04.116Z",
+    "code": "RC-BNG-001"
   },
   {
     "_id": "0h6zjcci6msh4130n",
@@ -52,7 +53,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.499Z"
+    "updatedAt": "2026-08-16T13:53:04.148Z",
+    "code": "RC-EAR-001"
   },
   {
     "_id": "2n98dxw1cmsh4130t",
@@ -75,7 +77,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.503Z"
+    "updatedAt": "2026-08-16T13:53:04.154Z",
+    "code": "RC-CHN-001"
   },
   {
     "_id": "ikj2ixip4msh41310",
@@ -98,7 +101,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.507Z"
+    "updatedAt": "2026-08-16T13:53:04.160Z",
+    "code": "RC-CHN-002"
   },
   {
     "_id": "18cgqufmemsh41313",
@@ -123,7 +127,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.511Z"
+    "updatedAt": "2026-08-16T13:53:04.165Z",
+    "code": "RC-HAR-001"
   },
   {
     "_id": "hevvxgy12msh41317",
@@ -147,7 +152,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.516Z"
+    "updatedAt": "2026-08-16T13:53:04.171Z",
+    "code": "RC-COS-001"
   },
   {
     "_id": "b3715vts8msh4131d",
@@ -170,7 +176,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.519Z"
+    "updatedAt": "2026-08-16T13:53:04.176Z",
+    "code": "RC-GSL-001"
   },
   {
     "_id": "9jsa7pjfpmsh4131g",
@@ -193,7 +200,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.520Z"
+    "updatedAt": "2026-08-16T13:53:04.182Z",
+    "code": "RC-1GM-001"
   },
   {
     "_id": "v7zx579t1msh4131m",
@@ -216,7 +224,8 @@
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.522Z"
+    "updatedAt": "2026-08-16T13:53:04.186Z",
+    "code": "RC-RNT-001"
   },
   {
     "_id": "am9voo6vemsh48j26",
@@ -230,13 +239,16 @@
       "https://images.unsplash.com/photo-1630019852942-f89202989a59?w=500"
     ],
     "video": "",
-    "colors": [],
+    "colors": [
+      "lavender"
+    ],
     "sizes": [],
     "id": "am9voo6vemsh48j26",
     "collectionId": "c4s0cymm4msr9mhwo",
     "isNewArrival": false,
     "stock": true,
     "isActive": true,
-    "updatedAt": "2026-08-13T08:37:48.523Z"
+    "updatedAt": "2026-08-16T14:01:56.163Z",
+    "code": "RC-EAR-002"
   }
 ]

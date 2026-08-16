@@ -24,6 +24,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   const [editProduct, setEditProduct] = useState(null); // if null, adding new
   const [prodForm, setProdForm] = useState({
     name: '',
+    code: '',
     category: '',
     description: '',
     price: '',
@@ -37,6 +38,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     isNewArrival: false,
     isActive: true
   });
+  const [customColor, setCustomColor] = useState('');
 
   // Collection modal state
   const [showColModal, setShowColModal] = useState(false);
@@ -181,15 +183,24 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     const imgs = [...(product.images || [])];
     while (imgs.length < 3) imgs.push('');
     
+    const productColors = product.colors || [];
+    const formColors = productColors.filter(c => AVAILABLE_COLORS.includes(c));
+    const customColorVal = productColors.find(c => !AVAILABLE_COLORS.includes(c)) || '';
+    if (customColorVal) {
+      formColors.push('Other');
+    }
+    setCustomColor(customColorVal);
+    
     setProdForm({
       name: product.name,
+      code: product.code || '',
       category: product.category || '',
       description: product.description,
       price: product.price,
       discount: product.discount || 0,
       images: imgs,
       video: product.video || '',
-      colors: product.colors || [],
+      colors: formColors,
       sizes: product.sizes || [],
       collectionId: product.collectionId || '',
       stock: product.stock !== undefined ? product.stock : true,
@@ -202,9 +213,11 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   // Open modal for adding product
   const openAddModal = () => {
     setEditProduct(null);
+    setCustomColor('');
     const defaultCol = collections.length > 0 ? collections[0]._id : '';
     setProdForm({
       name: '',
+      code: '',
       category: collections.length > 0 ? collections[0].name : '',
       description: '',
       price: '',
@@ -224,8 +237,8 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   // Save product details (Create or Update)
   const handleSaveProduct = (e) => {
     e.preventDefault();
-    if (!prodForm.name || !prodForm.price || !prodForm.collectionId) {
-      alert('Product Name, Price, and Collection are required');
+    if (!prodForm.name || !prodForm.code || !prodForm.price || !prodForm.collectionId) {
+      alert('Product Name, Unique Code, Price, and Collection are required');
       return;
     }
 
@@ -236,11 +249,18 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     const targetCol = collections.find(c => c._id === prodForm.collectionId);
     const categoryName = targetCol ? targetCol.name : prodForm.category;
 
+    // Merge custom color selection
+    let finalColors = prodForm.colors.filter(c => c !== 'Other');
+    if (prodForm.colors.includes('Other') && customColor.trim()) {
+      finalColors.push(customColor.trim());
+    }
+
     const productPayload = {
       ...prodForm,
       category: categoryName,
       price: Number(prodForm.price),
       discount: Number(prodForm.discount),
+      colors: finalColors,
       images: filteredImages
     };
 
@@ -257,12 +277,13 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
       },
       body: JSON.stringify(productPayload)
     })
-      .then(res => {
+      .then(async res => {
         if (res.ok) {
           setShowModal(false);
           fetchDashboardData();
         } else {
-          alert('Error saving product');
+          const errData = await res.json();
+          alert(errData.message || 'Error saving product');
         }
       })
       .catch(err => console.error(err));
@@ -747,6 +768,11 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                             )}
                           </div>
                           <div className="cart-item-name">{prod.name}</div>
+                          {prod.code && (
+                            <div style={{ fontSize: '12.5px', color: 'var(--primary-pink)', fontWeight: 'bold', margin: '2px 0' }}>
+                              Code: {prod.code}
+                            </div>
+                          )}
                           <div className="cart-item-meta">{prod.description}</div>
                           <div className="cart-item-price">₹{prod.price} {prod.discount > 0 ? <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({prod.discount}% off)</span> : ''}</div>
                         </div>
@@ -848,6 +874,19 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                   value={prodForm.name} 
                   onChange={e => setProdForm(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. Traditional Choker"
+                  required 
+                />
+              </div>
+
+              {/* Unique Product Code */}
+              <div className="form-group">
+                <label className="form-label">Unique Product Code *</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={prodForm.code} 
+                  onChange={e => setProdForm(prev => ({ ...prev, code: e.target.value.trim().toUpperCase() }))}
+                  placeholder="e.g. RC-BNG-001"
                   required 
                 />
               </div>
@@ -965,8 +1004,36 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                       <span>{col}</span>
                     </div>
                   ))}
+                  {/* Other option */}
+                  <div 
+                    key="Other" 
+                    className={`checkbox-item ${prodForm.colors.includes('Other') ? 'active' : ''}`}
+                    onClick={() => toggleColorSelection('Other')}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={prodForm.colors.includes('Other')}
+                      onChange={() => {}}
+                    />
+                    <span>Other</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Custom Color Text Input */}
+              {prodForm.colors.includes('Other') && (
+                <div className="form-group" style={{ marginTop: '-8px', marginBottom: '16px' }}>
+                  <label className="form-label">Enter color *</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="e.g. Peacock Blue, Wine, Lavender"
+                    value={customColor}
+                    onChange={e => setCustomColor(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
               {/* Sizes selection (Bangles only) */}
               {(prodForm.category === 'Bangles' || (collections.find(c => c._id === prodForm.collectionId)?.name === 'Bangles')) && (
