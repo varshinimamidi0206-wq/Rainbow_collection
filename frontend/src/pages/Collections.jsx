@@ -12,6 +12,7 @@ export default function Collections({
   const [loading, setLoading] = useState(false);
   const [collections, setCollections] = useState([]);
   const [loadingCollections, setLoadingCollections] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   
   // Track active slide index for each product: { [productId]: activeImageIndex }
   const [carouselIndices, setCarouselIndices] = useState({});
@@ -23,14 +24,19 @@ export default function Collections({
   // Fetch collections on mount
   useEffect(() => {
     setLoadingCollections(true);
+    setFetchError(false);
     fetch(`${apiBaseUrl}/collections?active=true`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
       .then(data => {
         setCollections(data || []);
         setLoadingCollections(false);
       })
       .catch(err => {
         console.error('Error fetching collections:', err);
+        setFetchError(true);
         setLoadingCollections(false);
       });
   }, [apiBaseUrl]);
@@ -145,6 +151,10 @@ export default function Collections({
               borderRadius: '50%',
               animation: 'pulse-ring 1s infinite linear'
             }}></div>
+          </div>
+        ) : fetchError ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <p style={{ color: 'var(--text-muted)' }}>Unable to load categories. Please try again.</p>
           </div>
         ) : collections.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>

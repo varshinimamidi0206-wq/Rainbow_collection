@@ -73,7 +73,11 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
         }
       })
       .catch(err => {
-        setErrorMsg(err.message || 'Google Login failed.');
+        let cleanMsg = err.message || 'Google login could not be completed. Please try again.';
+        if (cleanMsg.toLowerCase().includes('fetch') || cleanMsg.toLowerCase().includes('network') || cleanMsg.toLowerCase().includes('cors')) {
+          cleanMsg = 'Google login could not be completed. Please try again.';
+        }
+        setErrorMsg(cleanMsg);
         setLoginLoading(false);
       });
   };
@@ -119,7 +123,11 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
           setLoginLoading(false);
         })
         .catch(err => {
-          setErrorMsg(err.message || 'Registration failed.');
+          let cleanMsg = err.message || 'Registration failed.';
+          if (cleanMsg.toLowerCase().includes('fetch') || cleanMsg.toLowerCase().includes('network') || cleanMsg.toLowerCase().includes('cors')) {
+            cleanMsg = 'Registration failed. Please try again later.';
+          }
+          setErrorMsg(cleanMsg);
           setLoginLoading(false);
         });
     } else {
@@ -155,7 +163,11 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
           }
         })
         .catch(err => {
-          setErrorMsg(err.message || 'Login failed.');
+          let cleanMsg = err.message || 'Login failed.';
+          if (cleanMsg.toLowerCase().includes('fetch') || cleanMsg.toLowerCase().includes('network') || cleanMsg.toLowerCase().includes('cors')) {
+            cleanMsg = 'Login failed. Please check your details.';
+          }
+          setErrorMsg(cleanMsg);
           setLoginLoading(false);
         });
     }

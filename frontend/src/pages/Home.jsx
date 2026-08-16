@@ -10,6 +10,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
   const [newArrivals, setNewArrivals] = useState([]);
   const [loadingCollections, setLoadingCollections] = useState(false);
   const [loadingNewArrivals, setLoadingNewArrivals] = useState(false);
+  const [collectionsError, setCollectionsError] = useState(false);
 
   // Card interaction states (matching Collections.jsx)
   const [carouselIndices, setCarouselIndices] = useState({});
@@ -54,14 +55,19 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
 
     // 2. Fetch active collections
     setLoadingCollections(true);
+    setCollectionsError(false);
     fetch(`${apiBaseUrl}/collections?active=true`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
       .then(data => {
         setCollections(data || []);
         setLoadingCollections(false);
       })
       .catch(err => {
         console.error('Error fetching collections:', err);
+        setCollectionsError(true);
         setLoadingCollections(false);
       });
 
@@ -276,6 +282,8 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
             animation: 'pulse-ring 1s infinite linear'
           }}></div>
         </div>
+      ) : collectionsError ? (
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Unable to load categories. Please try again.</p>
       ) : collections.length === 0 ? (
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>No collections found</p>
       ) : (

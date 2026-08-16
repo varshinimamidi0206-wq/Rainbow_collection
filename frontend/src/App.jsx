@@ -11,7 +11,22 @@ import Admin from './pages/Admin';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  // Support testing on physical mobile devices on local Wi-Fi
+  if (/^[0-9.]+$/.test(hostname)) {
+    return `http://${hostname}:5000/api`;
+  }
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const Instagram = ({ size = 20 }) => (
   <svg
