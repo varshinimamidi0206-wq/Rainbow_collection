@@ -482,90 +482,44 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
                 </div>
 
                 {/* Details */}
-                <div className="product-details">
-                  <h3 className="product-name">{product.name}</h3>
-                  <p className="product-desc">{product.description}</p>
+                <div className="product-details" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <h3 className="product-name" style={{ fontSize: '15px', fontWeight: '700', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {product.name}
+                  </h3>
 
-                  <div className="price-row">
-                    <span className="current-price">₹{product.price}</span>
+                  <div className="price-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span className="current-price" style={{ fontSize: '16px', fontWeight: '700' }}>₹{product.price}</span>
                     {hasDiscount && (
                       <>
-                        <span className="original-price">₹{originalPrice}</span>
-                        <span className="discount-badge">{product.discount}% OFF</span>
+                        <span className="original-price" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>₹{originalPrice}</span>
+                        <span className="discount-badge" style={{ fontSize: '10px', padding: '2px 6px' }}>{product.discount}% OFF</span>
                       </>
                     )}
                   </div>
 
-                  {/* Bangle Selector Options (on card) */}
-                  {isBangles && (
-                    <div 
-                      onClick={e => e.stopPropagation()} 
-                      style={{
-                        background: 'var(--light-pink)',
-                        padding: '10px',
-                        borderRadius: 'var(--radius-md)',
-                        marginBottom: '12px',
-                        border: '1px solid var(--border-color)'
-                      }}
-                    >
-                      <div className="selector-group">
-                        <span className="selector-label">Choose Size:</span>
-                        <div className="options-row">
-                          {((product.sizes && product.sizes.length > 0) ? product.sizes : ['2.2', '2.4', '2.6', '2.8']).map(sz => (
-                            <button
-                              key={sz}
-                              className={`option-pill ${bangleSelections[product._id]?.size === sz ? 'active' : ''}`}
-                              onClick={(e) => selectBangleSize(product._id, sz, e)}
-                            >
-                              {sz}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="selector-group" style={{ marginBottom: 0 }}>
-                        <span className="selector-label">Choose Color:</span>
-                        <div className="options-row">
-                          {((product.colors && product.colors.length > 0) ? product.colors : ['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red']).map(col => (
-                            <button
-                              key={col}
-                              className={`option-pill ${bangleSelections[product._id]?.color === col ? 'active' : ''}`}
-                              onClick={(e) => selectBangleColor(product._id, col, e)}
-                            >
-                              {col}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="action-row">
-                    <button 
-                      onClick={(e) => isOutOfStock ? null : handleBuyNow(product, e)}
-                      className="btn-primary"
-                      disabled={isOutOfStock}
-                      style={isOutOfStock ? { background: '#ccc', cursor: 'not-allowed' } : {}}
-                    >
-                      <ShoppingBag size={18} /> {isOutOfStock ? 'OUT OF STOCK' : 'BUY NOW'}
-                    </button>
-                    <button 
-                      onClick={(e) => isOutOfStock ? null : handleAddCart(product, e)}
-                      className="btn-secondary"
-                      disabled={isOutOfStock}
-                      style={isOutOfStock ? { borderColor: '#ccc', color: '#999', cursor: 'not-allowed' } : {}}
-                    >
-                      <ShoppingCart size={18} /> {isOutOfStock ? 'SOLD OUT' : 'ADD CART'}
-                    </button>
-                  </div>
-
+                  {/* BUY button */}
                   <button 
-                    className="btn-secondary" 
-                    onClick={(e) => { e.stopPropagation(); openProductModal(product); }}
-                    style={{ width: '100%', marginTop: '8px', gap: '6px', justifyContent: 'center', height: '40px', fontSize: '12px' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isOutOfStock) return;
+                      openProductModal(product);
+                    }}
+                    className="btn-primary"
+                    disabled={isOutOfStock}
+                    style={{ 
+                      width: '100%', 
+                      height: '36px', 
+                      fontSize: '13px', 
+                      fontWeight: '700', 
+                      borderRadius: 'var(--radius-sm)',
+                      background: isOutOfStock ? '#ccc' : 'var(--primary-pink)',
+                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                      marginTop: 'auto',
+                      border: 'none',
+                      color: '#FFF'
+                    }}
                   >
-                    <Eye size={15} /> View Details
+                    {isOutOfStock ? 'OUT OF STOCK' : 'BUY'}
                   </button>
                 </div>
               </div>

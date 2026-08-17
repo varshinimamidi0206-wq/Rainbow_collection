@@ -574,6 +574,12 @@ body {
   overflow: hidden;
 }
 
+@media (max-width: 767px) {
+  .product-carousel {
+    height: 160px; /* Perfectly square/compact for 2-column mobile grid */
+  }
+}
+
 .carousel-track {
   width: 100%;
   height: 100%;

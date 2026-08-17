@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShoppingBag, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, ShoppingCart, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 export default function Collections({ 
   selectedCategory, 
@@ -17,9 +17,21 @@ export default function Collections({
   // Track active slide index for each product: { [productId]: activeImageIndex }
   const [carouselIndices, setCarouselIndices] = useState({});
 
-  // Bangle selections state: { [productId]: { size, color } }
-  const [bangleSelections, setBangleSelections] = useState({});
-  const [warningMessage, setWarningMessage] = useState(null);
+
+
+  // Detail Modal popup state
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
+  const [modalBangleSelection, setModalBangleSelection] = useState({ size: '', color: '' });
+  const [modalWarning, setModalWarning] = useState(null);
+
+  useEffect(() => {
+    if (selectedProduct) {
+      setModalImageIndex(0);
+      setModalBangleSelection({ size: '', color: '' });
+      setModalWarning(null);
+    }
+  }, [selectedProduct]);
 
   // Fetch collections on mount
   useEffect(() => {
@@ -51,13 +63,10 @@ export default function Collections({
         setProducts(data || []);
         // Initialize carousel indices
         const indices = {};
-        const selections = {};
         (data || []).forEach(p => {
           indices[p._id] = 0;
-          selections[p._id] = { size: '', color: '' };
         });
         setCarouselIndices(indices);
-        setBangleSelections(selections);
         setLoading(false);
       })
       .catch(() => {
@@ -79,52 +88,52 @@ export default function Collections({
     }));
   };
 
-  const selectBangleSize = (prodId, size) => {
-    setBangleSelections(prev => ({
-      ...prev,
-      [prodId]: { ...prev[prodId], size }
-    }));
-    setWarningMessage(null);
+
+
+  // Modal helpers
+  const openProductModal = (product) => {
+    setSelectedProduct(product);
+    setModalImageIndex(0);
+    setModalBangleSelection({ size: '', color: '' });
+    setModalWarning(null);
   };
 
-  const selectBangleColor = (prodId, color) => {
-    setBangleSelections(prev => ({
-      ...prev,
-      [prodId]: { ...prev[prodId], color }
-    }));
-    setWarningMessage(null);
+  const closeProductModal = () => {
+    setSelectedProduct(null);
   };
 
-  const handleAddCart = (product) => {
+  const handleModalAddCart = () => {
+    const product = selectedProduct;
     const isBangles = product.category === 'Bangles' || 
       (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
 
     if (isBangles) {
-      const selection = bangleSelections[product._id];
-      if (!selection || !selection.size || !selection.color) {
-        setWarningMessage(`Please choose Size & Color for ${product.name}`);
+      if (!modalBangleSelection.size || !modalBangleSelection.color) {
+        setModalWarning("Please choose both Size and Color.");
         return;
       }
-      addToCart(product, selection.color, selection.size);
+      addToCart(product, modalBangleSelection.color, modalBangleSelection.size);
     } else {
       addToCart(product);
     }
+    closeProductModal();
   };
 
-  const handleBuyNow = (product) => {
+  const handleModalBuyNow = () => {
+    const product = selectedProduct;
     const isBangles = product.category === 'Bangles' || 
       (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
 
     if (isBangles) {
-      const selection = bangleSelections[product._id];
-      if (!selection || !selection.size || !selection.color) {
-        setWarningMessage(`Please choose Size & Color for ${product.name}`);
+      if (!modalBangleSelection.size || !modalBangleSelection.color) {
+        setModalWarning("Please choose both Size and Color.");
         return;
       }
-      triggerBuyNow(product, selection.color, selection.size);
+      triggerBuyNow(product, modalBangleSelection.color, modalBangleSelection.size);
     } else {
       triggerBuyNow(product);
     }
+    closeProductModal();
   };
 
   // 1. Render Collections List View
@@ -282,7 +291,12 @@ export default function Collections({
             const isOutOfStock = product.stock === false;
 
             return (
-              <div key={product._id} className="product-card" style={{ position: 'relative' }}>
+              <div 
+                key={product._id} 
+                className="product-card" 
+                onClick={() => openProductModal(product)}
+                style={{ cursor: 'pointer', position: 'relative' }}
+              >
                 {/* Image Carousel */}
                 <div className="product-carousel">
                   <div 
@@ -290,7 +304,6 @@ export default function Collections({
                     style={{ transform: `translateX(-${activeIdx * 100}%)` }}
                   >
                     {images.map((img, i) => {
-                      // Adjust local static urls
                       const finalImgUrl = img.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${img}` : img;
                       return (
                         <img 
@@ -307,13 +320,13 @@ export default function Collections({
                     <>
                       <button 
                         className="carousel-btn prev"
-                        onClick={() => handlePrevSlide(product._id, images.length)}
+                        onClick={(e) => { e.stopPropagation(); handlePrevSlide(product._id, images.length); }}
                       >
                         <ChevronLeft size={20} />
                       </button>
                       <button 
                         className="carousel-btn next"
-                        onClick={() => handleNextSlide(product._id, images.length)}
+                        onClick={(e) => { e.stopPropagation(); handleNextSlide(product._id, images.length); }}
                       >
                         <ChevronRight size={20} />
                       </button>
@@ -329,7 +342,7 @@ export default function Collections({
                     ))}
                   </div>
 
-                  {/* Out of Stock badge overlay */}
+                  {/* Stock badge overlay */}
                   {isOutOfStock && (
                     <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}>
                       <span style={{
@@ -348,84 +361,273 @@ export default function Collections({
                 </div>
 
                 {/* Product details */}
-                <div className="product-details">
-                  <h3 className="product-name">{product.name}</h3>
-                  <p className="product-desc">{product.description}</p>
+                <div className="product-details" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <h3 className="product-name" style={{ fontSize: '15px', fontWeight: '700', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {product.name}
+                  </h3>
 
-                  <div className="price-row">
-                    <span className="current-price">₹{product.price}</span>
+                  <div className="price-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span className="current-price" style={{ fontSize: '16px', fontWeight: '700' }}>₹{product.price}</span>
                     {hasDiscount && (
                       <>
-                        <span className="original-price">₹{originalPrice}</span>
-                        <span className="discount-badge">{product.discount}% OFF</span>
+                        <span className="original-price" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>₹{originalPrice}</span>
+                        <span className="discount-badge" style={{ fontSize: '10px', padding: '2px 6px' }}>{product.discount}% OFF</span>
                       </>
                     )}
                   </div>
 
-                  {/* Bangle selectors */}
-                  {isBangles && (
-                    <div style={{
-                      background: 'var(--light-pink)',
-                      padding: '12px',
-                      borderRadius: 'var(--radius-md)',
-                      marginBottom: '16px',
-                      border: '1px solid var(--border-color)'
-                    }}>
-                      <div className="selector-group">
-                        <span className="selector-label">Choose Size:</span>
-                        <div className="options-row">
-                          {((product.sizes && product.sizes.length > 0) ? product.sizes : ['2.2', '2.4', '2.6', '2.8']).map(sz => (
-                            <button
-                              key={sz}
-                              className={`option-pill ${bangleSelections[product._id]?.size === sz ? 'active' : ''}`}
-                              onClick={() => selectBangleSize(product._id, sz)}
-                            >
-                              {sz}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="selector-group" style={{ marginBottom: 0 }}>
-                        <span className="selector-label">Choose Color:</span>
-                        <div className="options-row">
-                          {((product.colors && product.colors.length > 0) ? product.colors : ['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red']).map(col => (
-                            <button
-                              key={col}
-                              className={`option-pill ${bangleSelections[product._id]?.color === col ? 'active' : ''}`}
-                              onClick={() => selectBangleColor(product._id, col)}
-                            >
-                              {col}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Buy / Cart Action buttons */}
-                  <div className="action-row">
-                    <button 
-                      onClick={() => isOutOfStock ? null : handleBuyNow(product)}
-                      className="btn-primary"
-                      disabled={isOutOfStock}
-                      style={isOutOfStock ? { background: '#ccc', cursor: 'not-allowed' } : {}}
-                    >
-                      <ShoppingBag size={18} /> {isOutOfStock ? 'OUT OF STOCK' : 'BUY NOW'}
-                    </button>
-                    <button 
-                      onClick={() => isOutOfStock ? null : handleAddCart(product)}
-                      className="btn-secondary"
-                      disabled={isOutOfStock}
-                      style={isOutOfStock ? { borderColor: '#ccc', color: '#999', cursor: 'not-allowed' } : {}}
-                    >
-                      <ShoppingCart size={18} /> {isOutOfStock ? 'SOLD OUT' : 'ADD CART'}
-                    </button>
-                  </div>
+                  {/* BUY button */}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isOutOfStock) return;
+                      openProductModal(product);
+                    }}
+                    className="btn-primary"
+                    disabled={isOutOfStock}
+                    style={{ 
+                      width: '100%', 
+                      height: '36px', 
+                      fontSize: '13px', 
+                      fontWeight: '700', 
+                      borderRadius: 'var(--radius-sm)',
+                      background: isOutOfStock ? '#ccc' : 'var(--primary-pink)',
+                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                      marginTop: 'auto',
+                      border: 'none',
+                      color: '#FFF'
+                    }}
+                  >
+                    {isOutOfStock ? 'OUT OF STOCK' : 'BUY'}
+                  </button>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* PRODUCT DETAILS DIALOG POPUP MODAL */}
+      {selectedProduct && (
+        <div 
+          className="overlay-sheet" 
+          onClick={closeProductModal}
+          style={{ zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+        >
+          <div 
+            className="drawer-content"
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              borderRadius: 'var(--radius-lg)',
+              maxWidth: '500px',
+              width: '100%',
+              margin: 'auto',
+              position: 'relative',
+              boxShadow: 'var(--shadow-lg)'
+            }}
+          >
+            <div className="drawer-header" style={{ position: 'sticky', top: 0, zIndex: 50, background: '#FFF' }}>
+              <h3 className="drawer-title">Product Details</h3>
+              <button className="close-btn" onClick={closeProductModal}><X size={20} /></button>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              {/* Product Images Modal Carousel */}
+              {selectedProduct.images && selectedProduct.images.length > 0 && (
+                <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '20px' }}>
+                  <img 
+                    src={selectedProduct.images[modalImageIndex].startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${selectedProduct.images[modalImageIndex]}` : selectedProduct.images[modalImageIndex]} 
+                    alt={selectedProduct.name}
+                    style={{ width: '100%', height: '280px', objectFit: 'cover' }}
+                  />
+                  {selectedProduct.images.length > 1 && (
+                    <>
+                      <button 
+                        style={{
+                          position: 'absolute',
+                          left: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '32px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => setModalImageIndex(prev => (prev - 1 + selectedProduct.images.length) % selectedProduct.images.length)}
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button 
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '32px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => setModalImageIndex(prev => (prev + 1) % selectedProduct.images.length)}
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Badges */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <span style={{
+                  background: 'var(--primary-pink)',
+                  color: 'var(--white)',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  padding: '4px 10px',
+                  borderRadius: '10px'
+                }}>
+                  {collections.find(c => c._id === selectedProduct.collectionId)?.name || selectedProduct.category}
+                </span>
+                {selectedProduct.stock === false ? (
+                  <span style={{
+                    background: '#FFE3E3',
+                    border: '1px solid #FFCCD5',
+                    color: '#D62E4E',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    padding: '4px 10px',
+                    borderRadius: '10px'
+                  }}>
+                    Out of Stock
+                  </span>
+                ) : (
+                  <span style={{
+                    background: '#EAEAEA',
+                    color: 'var(--success)',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    padding: '4px 10px',
+                    borderRadius: '10px'
+                  }}>
+                    In Stock
+                  </span>
+                )}
+              </div>
+
+              {/* Title & Info */}
+              <h2 style={{ fontFamily: 'Quicksand', fontSize: '22px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '8px' }}>
+                {selectedProduct.name}
+              </h2>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
+                {selectedProduct.description}
+              </p>
+
+              {/* Pricing */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                <span style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary-pink)' }}>
+                  ₹{selectedProduct.price}
+                </span>
+                {selectedProduct.discount > 0 && (
+                  <>
+                    <span style={{ fontSize: '16px', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                      ₹{Math.round(selectedProduct.price / (1 - selectedProduct.discount / 100))}
+                    </span>
+                    <span style={{
+                      background: 'var(--accent-gold)',
+                      color: 'var(--white)',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      padding: '2px 8px',
+                      borderRadius: '8px'
+                    }}>
+                      {selectedProduct.discount}% OFF
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Warning */}
+              {modalWarning && (
+                <div style={{ background: '#FFE3E3', color: '#D62E4E', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', marginBottom: '16px' }}>
+                  ⚠️ {modalWarning}
+                </div>
+              )}
+
+              {/* Bangle selectors inside modal */}
+              {(selectedProduct.category === 'Bangles' || (collections.find(c => c._id === selectedProduct.collectionId)?.name === 'Bangles')) && (
+                <div style={{
+                  background: 'var(--light-pink)',
+                  padding: '14px',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: '20px',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div className="selector-group">
+                    <span className="selector-label">Choose Size:</span>
+                    <div className="options-row">
+                      {((selectedProduct.sizes && selectedProduct.sizes.length > 0) ? selectedProduct.sizes : ['2.2', '2.4', '2.6', '2.8']).map(sz => (
+                        <button
+                          key={sz}
+                          className={`option-pill ${modalBangleSelection.size === sz ? 'active' : ''}`}
+                          onClick={() => { setModalBangleSelection(prev => ({ ...prev, size: sz })); setModalWarning(null); }}
+                        >
+                          {sz}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="selector-group" style={{ marginBottom: 0 }}>
+                    <span className="selector-label">Choose Color:</span>
+                    <div className="options-row">
+                      {((selectedProduct.colors && selectedProduct.colors.length > 0) ? selectedProduct.colors : ['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red']).map(col => (
+                        <button
+                          key={col}
+                          className={`option-pill ${modalBangleSelection.color === col ? 'active' : ''}`}
+                          onClick={() => { setModalBangleSelection(prev => ({ ...prev, color: col })); setModalWarning(null); }}
+                        >
+                          {col}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Purchase triggers */}
+              <div className="action-row" style={{ marginTop: '20px' }}>
+                <button 
+                  onClick={handleModalBuyNow}
+                  className="btn-primary"
+                  disabled={selectedProduct.stock === false}
+                  style={selectedProduct.stock === false ? { background: '#ccc', cursor: 'not-allowed' } : {}}
+                >
+                  <ShoppingBag size={18} /> {selectedProduct.stock === false ? 'OUT OF STOCK' : 'BUY NOW'}
+                </button>
+                <button 
+                  onClick={handleModalAddCart}
+                  className="btn-secondary"
+                  disabled={selectedProduct.stock === false}
+                  style={selectedProduct.stock === false ? { borderColor: '#ccc', color: '#999', cursor: 'not-allowed' } : {}}
+                >
+                  <ShoppingCart size={18} /> {selectedProduct.stock === false ? 'SOLD OUT' : 'ADD CART'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
