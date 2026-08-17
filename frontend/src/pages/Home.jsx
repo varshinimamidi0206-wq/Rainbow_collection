@@ -14,7 +14,6 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
 
   // Card interaction states (matching Collections.jsx)
   const [carouselIndices, setCarouselIndices] = useState({});
-  const [bangleSelections, setBangleSelections] = useState({});
   const [warningMessage, setWarningMessage] = useState(null);
 
   // Detail Modal popup state
@@ -79,13 +78,10 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
         setNewArrivals(data || []);
         // Initialize carousel indices
         const indices = {};
-        const selections = {};
         (data || []).forEach(p => {
           indices[p._id] = 0;
-          selections[p._id] = { size: '', color: '' };
         });
         setCarouselIndices(indices);
-        setBangleSelections(selections);
         setLoadingNewArrivals(false);
       })
       .catch(err => {
@@ -144,41 +140,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
     setWarningMessage(null);
   };
 
-  // Add to cart helper
-  const handleAddCart = (product, e) => {
-    e.stopPropagation();
-    const isBangles = product.category === 'Bangles' || 
-      (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
-    
-    if (isBangles) {
-      const selection = bangleSelections[product._id];
-      if (!selection || !selection.size || !selection.color) {
-        setWarningMessage(`Please choose Size & Color for ${product.name}`);
-        return;
-      }
-      addToCart(product, selection.color, selection.size);
-    } else {
-      addToCart(product);
-    }
-  };
 
-  // Buy now helper
-  const handleBuyNow = (product, e) => {
-    e.stopPropagation();
-    const isBangles = product.category === 'Bangles' || 
-      (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
-
-    if (isBangles) {
-      const selection = bangleSelections[product._id];
-      if (!selection || !selection.size || !selection.color) {
-        setWarningMessage(`Please choose Size & Color for ${product.name}`);
-        return;
-      }
-      triggerBuyNow(product, selection.color, selection.size);
-    } else {
-      triggerBuyNow(product);
-    }
-  };
 
   // Modal handlers
   const openProductModal = (product) => {
@@ -393,9 +355,6 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
             const originalPrice = hasDiscount 
               ? Math.round(product.price / (1 - product.discount / 100))
               : null;
-
-            const isBangles = product.category === 'Bangles' || 
-              (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
 
             const isOutOfStock = product.stock === false;
             const collectionName = collections.find(c => c._id === product.collectionId)?.name || product.category;

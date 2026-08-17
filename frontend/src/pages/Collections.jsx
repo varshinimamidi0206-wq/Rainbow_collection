@@ -285,9 +285,6 @@ export default function Collections({
               ? Math.round(product.price / (1 - product.discount / 100))
               : null;
 
-            const isBangles = product.category === 'Bangles' || 
-              (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
-
             const isOutOfStock = product.stock === false;
 
             return (
