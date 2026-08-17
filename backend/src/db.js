@@ -1,6 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import dns from 'dns';
+
+dns.setDefaultResultOrder('ipv4first');
+
+dotenv.config();
 
 const useMongoDB = process.env.MONGODB_URI ? true : false;
 const DATA_DIR = path.resolve('data');
