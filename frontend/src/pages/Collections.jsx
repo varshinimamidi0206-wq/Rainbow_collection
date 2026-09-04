@@ -11,14 +11,13 @@ export default function Collections({
 }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [productsError, setProductsError] = useState(false);
   const [collections, setCollections] = useState([]);
   const [loadingCollections, setLoadingCollections] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   
   // Track active slide index for each product: { [productId]: activeImageIndex }
   const [carouselIndices, setCarouselIndices] = useState({});
-
-
 
   // Detail Modal popup state
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -33,6 +32,15 @@ export default function Collections({
       setModalWarning(null);
     }
   }, [selectedProduct]);
+
+  // Helper to determine if a product belongs to Bangles
+  const isBanglesProduct = (prod) => {
+    if (!prod) return false;
+    const cat = (prod.category || '').toLowerCase();
+    const colName = (collections.find(c => (c._id === prod.collectionId || c.id === prod.collectionId))?.name || '').toLowerCase();
+    const currentName = (selectedCategory || '').toString().toLowerCase();
+    return cat.includes('bangle') || colName.includes('bangle') || currentName.includes('bangle');
+  };
 
   // Fetch collections on mount
   useEffect(() => {
@@ -55,9 +63,10 @@ export default function Collections({
   }, [apiBaseUrl]);
 
   // Fetch products when selectedCategory (collectionId or category name) changes
-  useEffect(() => {
+  const fetchProductsForCategory = () => {
     if (!selectedCategory) return;
     setLoading(true);
+    setProductsError(false);
 
     const normCat = selectedCategory.toString().toLowerCase().trim();
     const matched = collections.find(c => 
@@ -70,7 +79,10 @@ export default function Collections({
     const targetName = matched ? matched.name : selectedCategory;
 
     fetch(`${apiBaseUrl}/products?category=${encodeURIComponent(targetName)}&collectionId=${encodeURIComponent(targetId)}&active=true`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         setProducts(data || []);
         // Initialize carousel indices
@@ -81,9 +93,15 @@ export default function Collections({
         setCarouselIndices(indices);
         setLoading(false);
       })
-      .catch(() => {
+      .catch(err => {
+        console.error('Error fetching collection products:', err);
+        setProductsError(true);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchProductsForCategory();
   }, [selectedCategory, collections, apiBaseUrl]);
 
   const handlePrevSlide = (prodId, imagesCount) => {
@@ -100,8 +118,6 @@ export default function Collections({
     }));
   };
 
-
-
   // Modal helpers
   const openProductModal = (product) => {
     setSelectedProduct(product);
@@ -116,8 +132,7 @@ export default function Collections({
 
   const handleModalAddCart = () => {
     const product = selectedProduct;
-    const isBangles = product.category === 'Bangles' || 
-      (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
+    const isBangles = isBanglesProduct(product);
 
     if (isBangles) {
       if (!modalBangleSelection.size || !modalBangleSelection.color) {
@@ -133,8 +148,7 @@ export default function Collections({
 
   const handleModalBuyNow = () => {
     const product = selectedProduct;
-    const isBangles = product.category === 'Bangles' || 
-      (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
+    const isBangles = isBanglesProduct(product);
 
     if (isBangles) {
       if (!modalBangleSelection.size || !modalBangleSelection.color) {
@@ -222,7 +236,8 @@ export default function Collections({
     (c.id && c.id.toString().toLowerCase() === normSelectedCat) ||
     (c.name && c.name.toLowerCase() === normSelectedCat)
   );
-  const selectedCollName = selectedColl ? selectedColl.name : selectedCategory;
+  const isMongoId = /^[0-9a-fA-F]{24}$/.test(selectedCategory || '');
+  const selectedCollName = selectedColl ? selectedColl.name : (isMongoId ? 'Collection' : selectedCategory);
   const resolvedSelectedCollImg = resolveImageUrl(selectedColl ? selectedColl.image : '', selectedCollName);
 
   // 2. Render Products View within Category
@@ -230,7 +245,7 @@ export default function Collections({
     <div style={{ animation: 'fadeInUp 0.3s ease-out' }}>
       {/* Category header info bar */}
       <div className="category-info-bar">
-        <button className="back-btn" onClick={() => setSelectedCategory(null)}>
+        <button className="back-btn" onClick={() => setSelectedCategory(null)} title="Back to Collections">
           <ArrowLeft size={20} />
         </button>
         <span className="category-title-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -248,25 +263,6 @@ export default function Collections({
         </span>
       </div>
 
-      {/* Sticky selections warning alert */}
-      {warningMessage && (
-        <div style={{
-          position: 'sticky',
-          top: '64px',
-          zIndex: 80,
-          background: '#FFE3E3',
-          borderBottom: '1px solid #FFCCD5',
-          color: '#D62E4E',
-          padding: '12px 20px',
-          fontSize: '14px',
-          fontWeight: '700',
-          textAlign: 'center',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          ⚠️ {warningMessage}
-        </div>
-      )}
-
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <div style={{ 
@@ -282,11 +278,25 @@ export default function Collections({
             Loading products...
           </p>
         </div>
+      ) : productsError ? (
+        <div className="empty-state">
+          <div className="empty-icon">⚠️</div>
+          <h3 className="empty-title">Unable to Load Products</h3>
+          <p className="empty-text">Unable to load products. Please try again.</p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '16px' }}>
+            <button className="btn-primary" onClick={fetchProductsForCategory}>
+              Try Again
+            </button>
+            <button className="btn-secondary" onClick={() => setSelectedCategory(null)}>
+              View Other Collections
+            </button>
+          </div>
+        </div>
       ) : products.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🛍</div>
+          <div className="empty-icon">🛍️</div>
           <h3 className="empty-title">No Products Found</h3>
-          <p className="empty-text">We are updates our stock. Check back soon!</p>
+          <p className="empty-text">No products available in this collection.</p>
           <button className="btn-primary" onClick={() => setSelectedCategory(null)}>
             View Other Collections
           </button>
@@ -586,7 +596,7 @@ export default function Collections({
               )}
 
               {/* Bangle selectors inside modal */}
-              {(selectedProduct.category === 'Bangles' || (collections.find(c => c._id === selectedProduct.collectionId)?.name === 'Bangles')) && (
+              {isBanglesProduct(selectedProduct) && (
                 <div style={{
                   background: 'var(--light-pink)',
                   padding: '14px',

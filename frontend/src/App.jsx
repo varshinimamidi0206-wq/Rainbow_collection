@@ -201,7 +201,7 @@ export default function App() {
       ...product,
       color,
       size,
-      price: Math.round(product.price * (1 - (product.discount || 0) / 100)) // Apply discount
+      price: Number(product.price)
     };
     setCart(prev => [...prev, cartItem]);
     alert(`${product.name} added to cart!`);
@@ -217,12 +217,11 @@ export default function App() {
 
   // Direct purchase from product card
   const triggerBuyNow = (product, color = '', size = '') => {
-    const finalPrice = Math.round(product.price * (1 - (product.discount || 0) / 100));
     setDirectBuyItem({
       ...product,
       color,
       size,
-      price: finalPrice,
+      price: Number(product.price),
       image: product.images && product.images.length > 0 ? product.images[0] : ''
     });
     setCheckoutCart(false);

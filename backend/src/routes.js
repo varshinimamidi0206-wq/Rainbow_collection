@@ -303,8 +303,10 @@ router.get('/config', (req, res) => {
 router.get('/collections', async (req, res) => {
   try {
     const { active } = req.query;
-    const filter = active === 'true' ? { isActive: true } : {};
-    const collections = await db.collections.find(filter);
+    let collections = await db.collections.find({});
+    if (active === 'true') {
+      collections = collections.filter(c => c.isActive !== false);
+    }
     // Sort by displayOrder ascending
     collections.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
     res.json(collections);
@@ -385,8 +387,10 @@ router.get('/products', async (req, res) => {
     const { category, collectionId, isNewArrival, active } = req.query;
     
     // Retrieve base products
-    const baseFilter = active === 'true' ? { isActive: true } : {};
-    let products = await db.products.find(baseFilter);
+    let products = await db.products.find({});
+    if (active === 'true') {
+      products = products.filter(p => p.isActive !== false);
+    }
 
     if (isNewArrival !== undefined) {
       const isNew = isNewArrival === 'true';
@@ -394,26 +398,32 @@ router.get('/products', async (req, res) => {
     }
 
     if (collectionId || category) {
-      const searchTarget = (collectionId || category).toString().toLowerCase().trim();
-      
+      const colTarget = (collectionId || '').toString().toLowerCase().trim();
+      const catTarget = (category || '').toString().toLowerCase().trim();
+
       // Look up all collections to match ID with name and vice versa
       const allCollections = await db.collections.find({});
       const matchedColl = allCollections.find(c => 
-        (c._id && c._id.toString().toLowerCase() === searchTarget) ||
-        (c.id && c.id.toString().toLowerCase() === searchTarget) ||
-        (c.name && c.name.toLowerCase() === searchTarget)
+        (colTarget && c._id && c._id.toString().toLowerCase() === colTarget) ||
+        (colTarget && c.id && c.id.toString().toLowerCase() === colTarget) ||
+        (colTarget && c.name && c.name.toLowerCase() === colTarget) ||
+        (catTarget && c._id && c._id.toString().toLowerCase() === catTarget) ||
+        (catTarget && c.id && c.id.toString().toLowerCase() === catTarget) ||
+        (catTarget && c.name && c.name.toLowerCase() === catTarget)
       );
 
-      const targetId = matchedColl ? (matchedColl._id || matchedColl.id).toString() : collectionId;
-      const targetName = matchedColl ? matchedColl.name.toLowerCase() : (category || collectionId).toString().toLowerCase();
+      const targetId = matchedColl ? (matchedColl._id || matchedColl.id).toString().toLowerCase() : colTarget;
+      const targetName = matchedColl ? matchedColl.name.toLowerCase() : catTarget;
 
       products = products.filter(p => {
         const prodColId = (p.collectionId || '').toString().toLowerCase();
         const prodCat = (p.category || '').toLowerCase();
-        return (targetId && prodColId === targetId.toLowerCase()) || 
+        return (targetId && prodColId === targetId) || 
                (targetName && prodCat === targetName) ||
-               (searchTarget && prodColId === searchTarget) ||
-               (searchTarget && prodCat === searchTarget);
+               (colTarget && prodColId === colTarget) ||
+               (colTarget && prodCat === colTarget) ||
+               (catTarget && prodColId === catTarget) ||
+               (catTarget && prodCat === catTarget);
       });
     }
 
