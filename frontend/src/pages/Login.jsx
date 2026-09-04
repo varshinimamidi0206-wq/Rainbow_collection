@@ -10,44 +10,92 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
-  const [useMockGoogle, setUseMockGoogle] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState(
+    (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim()
+  );
+  const [googleReady, setGoogleReady] = useState(false);
 
-  // Initialize Google Sign-In button
+  // Check URL params for OAuth redirect errors or messages
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const err = urlParams.get('error');
+    if (err) {
+      setErrorMsg(`Google authentication error: ${err.replace(/_/g, ' ')}`);
+      // Clean query string from URL without reloading
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    }
+  }, []);
+
+  // Fetch Google Client ID from backend /config if not already set from frontend env
   useEffect(() => {
     fetch(`${apiBaseUrl}/config`)
       .then(res => res.json())
       .then(data => {
-        if (data.googleClientId && window.google) {
-          try {
-            window.google.accounts.id.initialize({
-              client_id: data.googleClientId,
-              callback: handleGoogleCallback
-            });
-            const googleBtn = document.getElementById("googleBtn");
-            if (googleBtn) {
-              window.google.accounts.id.renderButton(
-                googleBtn,
-                { theme: "outline", size: "large", width: "100%", text: "continue_with" }
-              );
-              setUseMockGoogle(false);
-            } else {
-              setUseMockGoogle(true);
-            }
-          } catch (e) {
-            console.error('Google accounts ID initialize failed:', e);
-            setUseMockGoogle(true);
-          }
-        } else {
-          setUseMockGoogle(true);
+        if (data.googleClientId) {
+          setGoogleClientId(data.googleClientId.trim());
         }
       })
       .catch(err => {
-        console.error('Error fetching app configuration:', err);
-        setUseMockGoogle(true);
+        console.warn('Could not fetch app configuration:', err.message);
       });
-  }, [apiBaseUrl, isRegister]);
+  }, [apiBaseUrl]);
 
+  // Initialize official Google Identity Services button
+  useEffect(() => {
+    if (!googleClientId) return;
+
+    const initializeGsi = () => {
+      if (window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleCallback,
+            auto_select: false,
+            cancel_on_tap_outside: true
+          });
+
+          const googleBtn = document.getElementById("googleBtn");
+          if (googleBtn) {
+            googleBtn.innerHTML = '';
+            window.google.accounts.id.renderButton(googleBtn, {
+              theme: "outline",
+              size: "large",
+              width: "100%",
+              text: "continue_with",
+              shape: "rectangular",
+              logo_alignment: "left"
+            });
+          }
+          setGoogleReady(true);
+        } catch (e) {
+          console.error('Google Identity Services initialization failed:', e);
+        }
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initializeGsi();
+    } else {
+      // Check if script is in document, if not append it
+      let script = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (!script) {
+        script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+      script.onload = initializeGsi;
+    }
+  }, [googleClientId, isRegister]);
+
+  // Real Google credential handler (receives verified JWT from Google)
   const handleGoogleCallback = (response) => {
+    if (!response || !response.credential) {
+      setErrorMsg('No Google credentials received. Please try again.');
+      return;
+    }
+
     const idToken = response.credential;
     setLoginLoading(true);
     setErrorMsg('');
@@ -69,26 +117,44 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
         localStorage.setItem('rainbow_token', data.token);
         localStorage.setItem('rainbow_user', JSON.stringify(data.user));
         setLoginLoading(false);
-        alert('Logged in successfully!');
-        
-        if (data.user.role === 'admin') {
-          setView('admin');
-        } else {
-          setView('home');
-        }
+        alert(`Welcome, ${data.user.name || data.user.email}! Logged in successfully.`);
+        setView('home');
       })
       .catch(err => {
         let cleanMsg = err.message || 'Google login could not be completed. Please try again.';
         if (cleanMsg.toLowerCase().includes('fetch') || cleanMsg.toLowerCase().includes('network') || cleanMsg.toLowerCase().includes('cors')) {
-          cleanMsg = 'Google login could not be completed. Please try again.';
+          cleanMsg = 'Google login failed due to a network error. Please try again.';
         }
         setErrorMsg(cleanMsg);
         setLoginLoading(false);
       });
   };
 
-  const handleMockGoogleLogin = () => {
-    handleGoogleCallback({ credential: 'mock-google-token' });
+  // Custom button click fallback: trigger Google account prompt or OAuth redirect
+  const handleCustomGoogleClick = async () => {
+    if (!googleClientId) {
+      setErrorMsg('Google Sign-In is not configured yet. Please add GOOGLE_CLIENT_ID to your environment variables.');
+      return;
+    }
+
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.prompt();
+    } else {
+      // Fallback to OAuth authorization URL redirect
+      try {
+        setLoginLoading(true);
+        const res = await fetch(`${apiBaseUrl}/auth/google/url`);
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error(data.message || 'Failed to get Google sign-in URL');
+        }
+      } catch (err) {
+        setErrorMsg(err.message || 'Could not start Google Sign-In');
+        setLoginLoading(false);
+      }
+    }
   };
 
   const handleEmailSubmit = (e) => {
@@ -329,40 +395,41 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
             <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
           </div>
 
-          {useMockGoogle ? (
-            <button 
-              type="button" 
-              onClick={handleMockGoogleLogin}
-              disabled={loginLoading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                width: '100%',
-                height: '44px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                background: '#FFF',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '700',
-                color: '#3c4043',
-                boxShadow: 'var(--shadow-sm)',
-                transition: 'var(--transition)'
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.53-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.11-6.68-4.96H1.21v3.15C3.18 21.88 7.31 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.32 14.24A7.16 7.16 0 0 1 5 12c0-.79.13-1.57.38-2.34V6.51H1.21A11.94 11.94 0 0 0 0 12c0 1.92.45 3.74 1.21 5.39l4.11-3.15z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.18 2.12 1.21 5.39l4.11 3.15c.94-2.85 3.57-4.96 6.68-4.96z"/>
-              </svg>
-              <span>Continue with Google</span>
-            </button>
-          ) : (
-            <div id="googleBtn" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}></div>
-          )}
+          <div style={{ width: '100%', minHeight: '44px' }}>
+            <div id="googleBtn" style={{ width: '100%', display: googleReady ? 'flex' : 'none', justifyContent: 'center' }}></div>
+            {!googleReady && (
+              <button 
+                type="button" 
+                onClick={handleCustomGoogleClick}
+                disabled={loginLoading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  height: '44px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: '#FFF',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: '#3c4043',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'var(--transition)'
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.53-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.11-6.68-4.96H1.21v3.15C3.18 21.88 7.31 24 12 24z"/>
+                  <path fill="#FBBC05" d="M5.32 14.24A7.16 7.16 0 0 1 5 12c0-.79.13-1.57.38-2.34V6.51H1.21A11.94 11.94 0 0 0 0 12c0 1.92.45 3.74 1.21 5.39l4.11-3.15z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.18 2.12 1.21 5.39l4.11 3.15c.94-2.85 3.57-4.96 6.68-4.96z"/>
+                </svg>
+                <span>{loginLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+              </button>
+            )}
+          </div>
         </>
       )}
 

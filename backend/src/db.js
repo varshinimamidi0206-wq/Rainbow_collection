@@ -163,10 +163,12 @@ if (useMongoDB) {
 
     const CustomerSchema = new mongoose.Schema({
       email: { type: String, unique: true },
-      password: { type: String }, // hashed password
+      password: { type: String }, // hashed password (optional for Google OAuth users)
       name: String,
       role: { type: String, default: 'customer' },
       picture: String,
+      googleId: { type: String, sparse: true },
+      isGoogleUser: { type: Boolean, default: false },
       createdAt: { type: Date, default: Date.now }
     });
 

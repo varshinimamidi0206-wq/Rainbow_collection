@@ -129,19 +129,51 @@ export default function App() {
 
   // Check login session & route path on launch
   useEffect(() => {
-    const savedToken = localStorage.getItem('rainbow_token');
-    const savedUser = localStorage.getItem('rainbow_user');
+    let loadedToken = localStorage.getItem('rainbow_token');
     let loadedUser = null;
-    if (savedToken && savedUser) {
+
+    const savedUser = localStorage.getItem('rainbow_user');
+    if (savedUser && loadedToken) {
       try {
         loadedUser = JSON.parse(savedUser);
-        setToken(savedToken);
-        setUser(loadedUser);
       } catch (e) {
         console.error('Error parsing stored session:', e);
         localStorage.removeItem('rainbow_token');
         localStorage.removeItem('rainbow_user');
+        loadedToken = null;
       }
+    }
+
+    // Check if OAuth redirect returned token & user in URL query params or hash
+    const searchParams = new URLSearchParams(window.location.search);
+    let oauthToken = searchParams.get('token');
+    let oauthUserStr = searchParams.get('user');
+
+    if (!oauthToken && window.location.hash.includes('?')) {
+      const hashQuery = window.location.hash.substring(window.location.hash.indexOf('?') + 1);
+      const hashParams = new URLSearchParams(hashQuery);
+      oauthToken = hashParams.get('token');
+      oauthUserStr = hashParams.get('user');
+    }
+
+    if (oauthToken && oauthUserStr) {
+      try {
+        const parsedUser = JSON.parse(decodeURIComponent(oauthUserStr));
+        loadedToken = oauthToken;
+        loadedUser = parsedUser;
+        localStorage.setItem('rainbow_token', loadedToken);
+        localStorage.setItem('rainbow_user', JSON.stringify(loadedUser));
+        // Clean URL query parameters
+        const cleanHash = window.location.hash.split('?')[0] || '#home';
+        window.history.replaceState({}, document.title, window.location.pathname + cleanHash);
+      } catch (e) {
+        console.error('Error parsing OAuth user payload:', e);
+      }
+    }
+
+    if (loadedToken && loadedUser) {
+      setToken(loadedToken);
+      setUser(loadedUser);
     }
 
     const { nextView, nextCategory, nextAdminTab } = parseHash(window.location.hash, loadedUser);

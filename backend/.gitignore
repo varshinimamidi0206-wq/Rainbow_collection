@@ -1,0 +1,15 @@
+# Backend dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Uploaded media (local files)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Logs
+logs/
+*.log

@@ -6,6 +6,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { OAuth2Client } from 'google-auth-library';
 import { db } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +16,18 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretrainbowkey123';
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'varshinimamidi0206@gmail.com').toLowerCase().trim();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+// Google OAuth Configuration
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || '';
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://rainbow-collection-4nlg.vercel.app').replace(/\/+$/, '');
+
+const googleClient = new OAuth2Client(
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_CALLBACK_URL
+);
 
 // Configure Multer for File Uploads
 const uploadsDir = path.join(__dirname, '../public/uploads');
@@ -178,7 +191,69 @@ router.post('/auth/customer/login', async (req, res) => {
   }
 });
 
-// 3. Google Sign-In Login
+// Helper to verify real Google ID tokens using google-auth-library with fallback
+async function verifyGoogleIdToken(idToken) {
+  if (!idToken || typeof idToken !== 'string') {
+    throw new Error('Google ID Token is required');
+  }
+
+  // Reject mock tokens immediately
+  if (idToken === 'mock-google-token' || idToken.startsWith('mock-')) {
+    throw new Error('Mock tokens are strictly disallowed. Please use real Google authentication.');
+  }
+
+  // 1. Primary verification using google-auth-library
+  if (GOOGLE_CLIENT_ID) {
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      if (!payload) throw new Error('Empty Google token payload');
+      if (!payload.email) throw new Error('Google account email not found in token');
+      if (!payload.email_verified) throw new Error('Google email address is not verified');
+
+      return {
+        sub: payload.sub,
+        email: payload.email,
+        name: payload.name || payload.given_name || 'Google User',
+        picture: payload.picture || '',
+        email_verified: payload.email_verified
+      };
+    } catch (err) {
+      console.warn('googleClient.verifyIdToken notice:', err.message);
+    }
+  }
+
+  // 2. Secondary verification via Google's official tokeninfo endpoint
+  const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+  if (!verifyRes.ok) {
+    const errData = await verifyRes.json().catch(() => ({}));
+    throw new Error(errData.error_description || 'Invalid or expired Google token');
+  }
+
+  const payload = await verifyRes.json();
+  if (GOOGLE_CLIENT_ID && payload.aud && payload.aud !== GOOGLE_CLIENT_ID) {
+    throw new Error('Google token audience does not match configured Client ID');
+  }
+  if (!payload.email) {
+    throw new Error('Google account email not found');
+  }
+  if (payload.email_verified === false || payload.email_verified === 'false') {
+    throw new Error('Google email is not verified');
+  }
+
+  return {
+    sub: payload.sub,
+    email: payload.email,
+    name: payload.name || 'Google User',
+    picture: payload.picture || '',
+    email_verified: true
+  };
+}
+
+// 3. Real Google Sign-In (ID Token verification)
 router.post('/auth/google/login', async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -186,51 +261,41 @@ router.post('/auth/google/login', async (req, res) => {
       return res.status(400).json({ message: 'Google ID Token is required' });
     }
 
-    let email, name, picture;
+    const googleUser = await verifyGoogleIdToken(idToken);
+    const sanitizedEmail = googleUser.email.toLowerCase().trim();
 
-    if (idToken === 'mock-google-token') {
-      email = 'googlecustomer@rainbow.com';
-      name = 'Google Customer';
-      picture = '';
-    } else {
-      const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`;
-      const verifyRes = await fetch(verifyUrl);
-      if (!verifyRes.ok) {
-        return res.status(400).json({ message: 'Invalid Google token' });
-      }
+    // REQUIREMENT 11: Admin Portal must remain separate. Google login users are strictly customer role.
+    const role = 'customer';
 
-      const payload = await verifyRes.json();
-      email = payload.email;
-      name = payload.name;
-      picture = payload.picture;
-      const { email_verified } = payload;
+    let user = await db.customers.findOne({
+      $or: [
+        { email: sanitizedEmail },
+        ...(googleUser.sub ? [{ googleId: googleUser.sub }] : [])
+      ]
+    });
 
-      if (!email_verified) {
-        return res.status(400).json({ message: 'Google email is not verified' });
-      }
-    }
-
-    const sanitizedEmail = email.toLowerCase().trim();
-    const role = sanitizedEmail === ADMIN_EMAIL ? 'admin' : 'customer';
-
-    let user = await db.customers.findOne({ email: sanitizedEmail });
     if (!user) {
       user = await db.customers.create({
         email: sanitizedEmail,
-        name: name || '',
-        picture: picture || '',
-        role
+        name: googleUser.name || 'Customer',
+        picture: googleUser.picture || '',
+        googleId: googleUser.sub,
+        isGoogleUser: true,
+        role: 'customer'
       });
     } else {
       await db.customers.findByIdAndUpdate(user._id, {
-        name: name || user.name,
-        picture: picture || user.picture,
-        role
+        name: user.name || googleUser.name,
+        picture: googleUser.picture || user.picture,
+        googleId: googleUser.sub || user.googleId,
+        isGoogleUser: true,
+        // Preserve role if customer, never elevate to admin via Google
+        role: user.role === 'admin' ? 'admin' : 'customer'
       });
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email, role, name: user.name },
+      { id: user._id || user.id, email: user.email, role: user.role || 'customer', name: user.name },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -240,12 +305,190 @@ router.post('/auth/google/login', async (req, res) => {
       user: {
         email: user.email,
         name: user.name,
-        role,
-        picture: user.picture || ''
+        role: user.role || 'customer',
+        picture: user.picture || googleUser.picture || ''
       }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Google login verification failed:', error.message);
+    res.status(400).json({ message: error.message || 'Google authentication failed' });
+  }
+});
+
+// 4. Get Google OAuth2 Authorization URL (for full redirect flow)
+router.get('/auth/google/url', (req, res) => {
+  if (!GOOGLE_CLIENT_ID) {
+    return res.status(400).json({ 
+      message: 'GOOGLE_CLIENT_ID is not configured in backend environment variables' 
+    });
+  }
+
+  const callbackUrl = req.query.redirect_uri || GOOGLE_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: callbackUrl,
+      response_type: 'code',
+      scope: 'openid email profile',
+      access_type: 'offline',
+      prompt: 'select_account'
+    }).toString();
+
+  res.json({ url: authUrl });
+});
+
+// 5. Google OAuth2 Authorization Code Callback (for server-side redirect flow)
+router.get('/auth/google/callback', async (req, res) => {
+  try {
+    const { code, error } = req.query;
+    if (error) {
+      return res.redirect(`${FRONTEND_URL}/#login?error=${encodeURIComponent(error)}`);
+    }
+    if (!code) {
+      return res.redirect(`${FRONTEND_URL}/#login?error=No_code_provided`);
+    }
+
+    const callbackUrl = GOOGLE_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: String(code),
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: callbackUrl,
+        grant_type: 'authorization_code'
+      }).toString()
+    });
+
+    if (!tokenRes.ok) {
+      const errData = await tokenRes.json().catch(() => ({}));
+      return res.redirect(`${FRONTEND_URL}/#login?error=${encodeURIComponent(errData.error_description || 'Token_exchange_failed')}`);
+    }
+
+    const tokenData = await tokenRes.json();
+    const googleUser = await verifyGoogleIdToken(tokenData.id_token);
+    const sanitizedEmail = googleUser.email.toLowerCase().trim();
+
+    let user = await db.customers.findOne({
+      $or: [
+        { email: sanitizedEmail },
+        ...(googleUser.sub ? [{ googleId: googleUser.sub }] : [])
+      ]
+    });
+
+    if (!user) {
+      user = await db.customers.create({
+        email: sanitizedEmail,
+        name: googleUser.name || 'Customer',
+        picture: googleUser.picture || '',
+        googleId: googleUser.sub,
+        isGoogleUser: true,
+        role: 'customer'
+      });
+    } else {
+      await db.customers.findByIdAndUpdate(user._id, {
+        name: user.name || googleUser.name,
+        picture: googleUser.picture || user.picture,
+        googleId: googleUser.sub || user.googleId,
+        isGoogleUser: true
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user._id || user.id, email: user.email, role: 'customer', name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const userParam = encodeURIComponent(JSON.stringify({
+      email: user.email,
+      name: user.name,
+      role: 'customer',
+      picture: user.picture || googleUser.picture || ''
+    }));
+
+    res.redirect(`${FRONTEND_URL}/#login?token=${token}&user=${userParam}`);
+  } catch (err) {
+    console.error('OAuth callback failed:', err.message);
+    res.redirect(`${FRONTEND_URL}/#login?error=${encodeURIComponent(err.message)}`);
+  }
+});
+
+// 6. Google OAuth2 Authorization Code Exchange (for client-side code flow)
+router.post('/auth/google/code', async (req, res) => {
+  try {
+    const { code, redirectUri } = req.body;
+    if (!code) {
+      return res.status(400).json({ message: 'Authorization code is required' });
+    }
+
+    const callbackUrl = redirectUri || GOOGLE_CALLBACK_URL || 'postmessage';
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: String(code),
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: callbackUrl,
+        grant_type: 'authorization_code'
+      }).toString()
+    });
+
+    if (!tokenRes.ok) {
+      const errData = await tokenRes.json().catch(() => ({}));
+      return res.status(400).json({ message: errData.error_description || 'Failed to exchange authorization code' });
+    }
+
+    const tokenData = await tokenRes.json();
+    const googleUser = await verifyGoogleIdToken(tokenData.id_token);
+    const sanitizedEmail = googleUser.email.toLowerCase().trim();
+
+    let user = await db.customers.findOne({
+      $or: [
+        { email: sanitizedEmail },
+        ...(googleUser.sub ? [{ googleId: googleUser.sub }] : [])
+      ]
+    });
+
+    if (!user) {
+      user = await db.customers.create({
+        email: sanitizedEmail,
+        name: googleUser.name || 'Customer',
+        picture: googleUser.picture || '',
+        googleId: googleUser.sub,
+        isGoogleUser: true,
+        role: 'customer'
+      });
+    } else {
+      await db.customers.findByIdAndUpdate(user._id, {
+        name: user.name || googleUser.name,
+        picture: googleUser.picture || user.picture,
+        googleId: googleUser.sub || user.googleId,
+        isGoogleUser: true
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user._id || user.id, email: user.email, role: 'customer', name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        email: user.email,
+        name: user.name,
+        role: 'customer',
+        picture: user.picture || googleUser.picture || ''
+      }
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message || 'Google code verification failed' });
   }
 });
 
