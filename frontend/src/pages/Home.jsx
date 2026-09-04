@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ShoppingCart, ShoppingBag, Eye, X } from 'lucide-react';
+import { resolveImageUrl, handleImageError } from '../utils/imageUrl';
 
 export default function Home({ setView, setSelectedCategory, addToCart, triggerBuyNow, apiBaseUrl, selectedProduct, setSelectedProduct }) {
   const [banners, setBanners] = useState([]);
@@ -200,7 +201,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
       {banners.length > 0 && (
         <div className="banner-container">
           {banners.map((banner, index) => {
-            const bannerUrl = banner.url.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${banner.url}` : banner.url;
+            const bannerUrl = resolveImageUrl(banner.url);
             return (
               <div 
                 key={banner._id || index}
@@ -251,19 +252,19 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
       ) : (
         <div className="horizontal-scroll-container hide-scrollbar">
           {collections.map(col => {
-            const isImageUrl = col.image && (col.image.startsWith('http') || col.image.startsWith('/'));
-            const finalImgUrl = isImageUrl ? (col.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${col.image}` : col.image) : '';
+            const resolvedImg = resolveImageUrl(col.image, col.name);
             return (
               <div 
-                key={col._id} 
+                key={col._id || col.id} 
                 className="scroll-card"
-                onClick={() => handleCollectionClick(col._id)}
+                onClick={() => handleCollectionClick(col._id || col.id || col.name)}
               >
                 <div className="scroll-image-container">
-                  {isImageUrl ? (
+                  {resolvedImg ? (
                     <img 
-                      src={finalImgUrl} 
+                      src={resolvedImg} 
                       alt={col.name} 
+                      onError={(e) => handleImageError(e, col.name)}
                     />
                   ) : (
                     <span className="scroll-image-fallback">{col.image || '✨'}</span>
@@ -373,13 +374,14 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
                     style={{ transform: `translateX(-${activeIdx * 100}%)` }}
                   >
                     {images.map((img, i) => {
-                      const finalImgUrl = img.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${img}` : img;
+                      const finalImgUrl = resolveImageUrl(img, product.category);
                       return (
                         <img 
                           key={i}
                           src={finalImgUrl}
                           alt={`${product.name} - ${i + 1}`}
                           className="carousel-image"
+                          onError={(e) => handleImageError(e, product.category)}
                         />
                       );
                     })}
@@ -518,8 +520,9 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
               {selectedProduct.images && selectedProduct.images.length > 0 && (
                 <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '20px' }}>
                   <img 
-                    src={selectedProduct.images[modalImageIndex].startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${selectedProduct.images[modalImageIndex]}` : selectedProduct.images[modalImageIndex]} 
+                    src={resolveImageUrl(selectedProduct.images[modalImageIndex], selectedProduct.category)} 
                     alt={selectedProduct.name}
+                    onError={(e) => handleImageError(e, selectedProduct.category)}
                     style={{ width: '100%', height: '280px', objectFit: 'cover' }}
                   />
                   {selectedProduct.images.length > 1 && (

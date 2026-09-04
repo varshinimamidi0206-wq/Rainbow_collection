@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import router, { seedDatabase } from './routes.js';
 
@@ -21,11 +22,19 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173'
 ];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL.trim());
+}
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+    if (
+      allowedOrigins.includes(origin) || 
+      origin.startsWith('http://localhost') || 
+      origin.startsWith('http://127.0.0.1') ||
+      origin.endsWith('.vercel.app')
+    ) {
       return callback(null, true);
     }
     return callback(new Error('CORS not allowed'), false);
@@ -39,11 +48,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploads folder statically
-app.use('/uploads', express.static(path.resolve('public/uploads')));
+// Serve uploads folder statically using guaranteed absolute path
+const uploadsDir = path.join(__dirname, '../public/uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
 
 // Serve other public assets if needed
-app.use(express.static(path.resolve('public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Root Endpoint
 app.get('/', (req, res) => {

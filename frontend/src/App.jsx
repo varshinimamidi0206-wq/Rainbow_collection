@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Home as HomeIcon, ShoppingBag, Package, Phone, ShoppingCart, Menu, X, MessageSquare } from 'lucide-react';
 
+// Import components and utilities
+import ErrorBoundary from './components/ErrorBoundary';
+import { getBaseUrls, resolveImageUrl, handleImageError } from './utils/imageUrl';
+
 // Import subpages
 import Home from './pages/Home';
 import Collections from './pages/Collections';
@@ -11,22 +15,7 @@ import Admin from './pages/Admin';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 
-const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:5000/api';
-  }
-  // Support testing on physical mobile devices on local Wi-Fi
-  if (/^[0-9.]+$/.test(hostname)) {
-    return `http://${hostname}:5000/api`;
-  }
-  return 'http://localhost:5000/api';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const { apiBaseUrl: API_BASE_URL } = getBaseUrls();
 
 const Instagram = ({ size = 20 }) => (
   <svg
@@ -92,95 +81,91 @@ export default function App() {
       });
   };
 
+  // Parse SPA routing from URL hash or path
+  const parseHash = (hashString, userObj) => {
+    const initialHash = hashString || '#home';
+    const cleanHash = initialHash.replace(/^#/, '').trim();
+    
+    let nextView = 'home';
+    let nextCategory = null;
+    let nextAdminTab = 'dashboard';
+    let productId = null;
+
+    if (window.location.pathname === '/admin') {
+      if (userObj && userObj.role === 'admin') {
+        nextView = 'admin';
+      } else {
+        nextView = 'login';
+      }
+    } else if (cleanHash.startsWith('collections')) {
+      nextView = 'collections';
+      if (cleanHash.startsWith('collections-')) {
+        nextCategory = decodeURIComponent(cleanHash.substring('collections-'.length));
+      }
+    } else if (cleanHash.startsWith('admin')) {
+      nextView = 'admin';
+      if (cleanHash.startsWith('admin-')) {
+        nextAdminTab = cleanHash.substring('admin-'.length);
+      }
+    } else if (cleanHash.startsWith('home-product-')) {
+      nextView = 'home';
+      productId = cleanHash.substring('home-product-'.length);
+    } else if (cleanHash === 'account') {
+      nextView = 'orders';
+    } else if (cleanHash === 'products') {
+      nextView = 'collections';
+    } else if (['home', 'collections', 'orders', 'contact', 'cart', 'checkout', 'login', 'admin'].includes(cleanHash)) {
+      nextView = cleanHash;
+    } else {
+      nextView = 'home';
+    }
+
+    return { nextView, nextCategory, nextAdminTab, productId };
+  };
+
   // Check login session & route path on launch
   useEffect(() => {
     const savedToken = localStorage.getItem('rainbow_token');
     const savedUser = localStorage.getItem('rainbow_user');
     let loadedUser = null;
     if (savedToken && savedUser) {
-      setToken(savedToken);
-      loadedUser = JSON.parse(savedUser);
-      setUser(loadedUser);
-    }
-
-    // Initialize SPA routing from URL hash or path
-    const initialHash = window.location.hash || '#home';
-    const cleanHash = initialHash.substring(1);
-    let initialView = 'home';
-    let initialCategory = null;
-    let initialAdminTab = 'dashboard';
-
-    // Support legacy pathname check for /admin
-    if (window.location.pathname === '/admin') {
-      if (loadedUser && loadedUser.role === 'admin') {
-        initialView = 'admin';
-      } else {
-        initialView = 'login';
-      }
-    } else {
-      if (cleanHash.startsWith('collections')) {
-        initialView = 'collections';
-        const parts = cleanHash.split('-');
-        if (parts.length > 1) {
-          initialCategory = parts[1];
-        }
-      } else if (cleanHash.startsWith('admin')) {
-        initialView = 'admin';
-        const parts = cleanHash.split('-');
-        if (parts.length > 1) {
-          initialAdminTab = parts[1];
-        }
-      } else {
-        initialView = cleanHash || 'home';
+      try {
+        loadedUser = JSON.parse(savedUser);
+        setToken(savedToken);
+        setUser(loadedUser);
+      } catch (e) {
+        console.error('Error parsing stored session:', e);
+        localStorage.removeItem('rainbow_token');
+        localStorage.removeItem('rainbow_user');
       }
     }
 
-    setView(initialView);
-    setSelectedCategory(initialCategory);
-    setAdminTab(initialAdminTab);
+    const { nextView, nextCategory, nextAdminTab } = parseHash(window.location.hash, loadedUser);
+    setView(nextView);
+    setSelectedCategory(nextCategory);
+    setAdminTab(nextAdminTab);
 
     // Replace initial state in history
     window.history.replaceState({
-      view: initialView,
-      selectedCategory: initialCategory,
+      view: nextView,
+      selectedCategory: nextCategory,
       selectedProduct: null,
-      adminTab: initialAdminTab
-    }, '', window.location.pathname === '/admin' ? '#admin' : initialHash);
+      adminTab: nextAdminTab
+    }, '', window.location.pathname === '/admin' ? '#admin' : (window.location.hash || '#home'));
 
     // Popstate event handler
     const handlePopState = (event) => {
-      if (event.state) {
-        setView(event.state.view || 'home');
+      if (event.state && event.state.view) {
+        setView(event.state.view);
         setSelectedCategory(event.state.selectedCategory || null);
         setSelectedProduct(event.state.selectedProduct || null);
         setAdminTab(event.state.adminTab || 'dashboard');
       } else {
-        const hash = window.location.hash || '#home';
-        const cleanHash = hash.substring(1);
-        let currentView = 'home';
-        let currentCategory = null;
-        let currentAdminTab = 'dashboard';
-        
-        if (cleanHash.startsWith('collections')) {
-          currentView = 'collections';
-          const parts = cleanHash.split('-');
-          if (parts.length > 1) {
-            currentCategory = parts[1];
-          }
-        } else if (cleanHash.startsWith('admin')) {
-          currentView = 'admin';
-          const parts = cleanHash.split('-');
-          if (parts.length > 1) {
-            currentAdminTab = parts[1];
-          }
-        } else {
-          currentView = cleanHash || 'home';
-        }
-        
-        setView(currentView);
-        setSelectedCategory(currentCategory);
+        const parsed = parseHash(window.location.hash, loadedUser);
+        setView(parsed.nextView);
+        setSelectedCategory(parsed.nextCategory);
         setSelectedProduct(null);
-        setAdminTab(currentAdminTab);
+        setAdminTab(parsed.nextAdminTab);
       }
     };
 
@@ -271,9 +256,10 @@ export default function App() {
 
   // 2. Render Main Application Layout
   return (
-    <div className="app-container">
-      {/* Top Header (Hidden on Admin screen) */}
-      {view !== 'admin' && (
+    <ErrorBoundary>
+      <div className="app-container">
+        {/* Top Header (Hidden on Admin screen) */}
+        {view !== 'admin' && (
         <header className="app-header">
           <div className="header-brand" onClick={() => handleNavClick('home')} style={{ cursor: 'pointer' }}>
             <div className="header-logo">
@@ -472,6 +458,19 @@ export default function App() {
           />
         )}
 
+        {/* Fallback to Home if unknown or invalid view */}
+        {!['home', 'collections', 'cart', 'checkout', 'orders', 'login', 'contact', 'admin'].includes(view) && (
+          <Home 
+            setView={setView} 
+            setSelectedCategory={setSelectedCategory} 
+            addToCart={addToCart}
+            triggerBuyNow={triggerBuyNow}
+            apiBaseUrl={API_BASE_URL}
+            selectedProduct={selectedProduct}
+            setSelectedProduct={setSelectedProduct}
+          />
+        )}
+
         {searchResult && (
           <div className="overlay-sheet" onClick={() => setSearchResult(null)} style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
             <div className="drawer-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', width: '100%', borderRadius: 'var(--radius-lg)', padding: '20px', position: 'relative', animation: 'fadeInUp 0.3s ease-out' }}>
@@ -489,8 +488,9 @@ export default function App() {
                 <div style={{ marginTop: '15px' }}>
                   {searchResult.images && searchResult.images.length > 0 && (
                      <img 
-                       src={searchResult.images[0].startsWith('/') ? `${API_BASE_URL.replace('/api', '')}${searchResult.images[0]}` : searchResult.images[0]} 
+                       src={resolveImageUrl(searchResult.images[0], searchResult.category)} 
                        alt={searchResult.name}
+                       onError={(e) => handleImageError(e, searchResult.category)}
                        style={{ width: '100%', height: '240px', objectFit: 'cover', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}
                      />
                   )}
@@ -742,6 +742,7 @@ export default function App() {
           </div>
         </footer>
       )}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

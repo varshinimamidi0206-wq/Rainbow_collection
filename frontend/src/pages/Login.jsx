@@ -23,11 +23,16 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
               client_id: data.googleClientId,
               callback: handleGoogleCallback
             });
-            window.google.accounts.id.renderButton(
-              document.getElementById("googleBtn"),
-              { theme: "outline", size: "large", width: "100%", text: "continue_with" }
-            );
-            setUseMockGoogle(false);
+            const googleBtn = document.getElementById("googleBtn");
+            if (googleBtn) {
+              window.google.accounts.id.renderButton(
+                googleBtn,
+                { theme: "outline", size: "large", width: "100%", text: "continue_with" }
+              );
+              setUseMockGoogle(false);
+            } else {
+              setUseMockGoogle(true);
+            }
           } catch (e) {
             console.error('Google accounts ID initialize failed:', e);
             setUseMockGoogle(true);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ShoppingBag, ShoppingCart, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { resolveImageUrl, handleImageError } from '../utils/imageUrl';
 
 export default function Collections({ 
   selectedCategory, 
@@ -53,11 +54,22 @@ export default function Collections({
       });
   }, [apiBaseUrl]);
 
-  // Fetch products when selectedCategory (collectionId) changes
+  // Fetch products when selectedCategory (collectionId or category name) changes
   useEffect(() => {
     if (!selectedCategory) return;
     setLoading(true);
-    fetch(`${apiBaseUrl}/products?collectionId=${encodeURIComponent(selectedCategory)}&active=true`)
+
+    const normCat = selectedCategory.toString().toLowerCase().trim();
+    const matched = collections.find(c => 
+      (c._id && c._id.toString().toLowerCase() === normCat) ||
+      (c.id && c.id.toString().toLowerCase() === normCat) ||
+      (c.name && c.name.toLowerCase() === normCat)
+    );
+
+    const targetId = matched ? (matched._id || matched.id) : selectedCategory;
+    const targetName = matched ? matched.name : selectedCategory;
+
+    fetch(`${apiBaseUrl}/products?category=${encodeURIComponent(targetName)}&collectionId=${encodeURIComponent(targetId)}&active=true`)
       .then(res => res.json())
       .then(data => {
         setProducts(data || []);
@@ -72,7 +84,7 @@ export default function Collections({
       .catch(() => {
         setLoading(false);
       });
-  }, [selectedCategory, apiBaseUrl]);
+  }, [selectedCategory, collections, apiBaseUrl]);
 
   const handlePrevSlide = (prodId, imagesCount) => {
     setCarouselIndices(prev => ({
@@ -172,20 +184,20 @@ export default function Collections({
         ) : (
           <div className="category-grid">
             {collections.map(cat => {
-              const isImageUrl = cat.image && (cat.image.startsWith('http') || cat.image.startsWith('/'));
-              const finalImgUrl = isImageUrl ? (cat.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${cat.image}` : cat.image) : '';
+              const resolvedImg = resolveImageUrl(cat.image, cat.name);
               return (
                 <div 
-                  key={cat._id} 
+                  key={cat._id || cat.id} 
                   className="category-card"
-                  onClick={() => setSelectedCategory(cat._id)}
+                  onClick={() => setSelectedCategory(cat._id || cat.id || cat.name)}
                 >
                   <div className="category-image-container">
-                    {isImageUrl ? (
+                    {resolvedImg ? (
                       <img 
-                        src={finalImgUrl} 
+                        src={resolvedImg} 
                         alt={cat.name} 
                         className="category-img"
+                        onError={(e) => handleImageError(e, cat.name)}
                       />
                     ) : (
                       <div className="category-img-fallback">
@@ -203,12 +215,15 @@ export default function Collections({
     );
   }
 
-  // Find info about the selected collection
-  const selectedColl = collections.find(c => c._id === selectedCategory);
-  const selectedCollName = selectedColl ? selectedColl.name : '';
-  const selectedCollImage = selectedColl ? selectedColl.image : '✨';
-  const isSelectedCollImageUrl = selectedCollImage && (selectedCollImage.startsWith('http') || selectedCollImage.startsWith('/'));
-  const finalSelectedCollImgUrl = isSelectedCollImageUrl ? (selectedCollImage.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${selectedCollImage}` : selectedCollImage) : '';
+  // Find info about the selected collection (by _id, id, or case-insensitive name)
+  const normSelectedCat = (selectedCategory || '').toString().toLowerCase().trim();
+  const selectedColl = collections.find(c => 
+    (c._id && c._id.toString().toLowerCase() === normSelectedCat) ||
+    (c.id && c.id.toString().toLowerCase() === normSelectedCat) ||
+    (c.name && c.name.toLowerCase() === normSelectedCat)
+  );
+  const selectedCollName = selectedColl ? selectedColl.name : selectedCategory;
+  const resolvedSelectedCollImg = resolveImageUrl(selectedColl ? selectedColl.image : '', selectedCollName);
 
   // 2. Render Products View within Category
   return (
@@ -219,10 +234,15 @@ export default function Collections({
           <ArrowLeft size={20} />
         </button>
         <span className="category-title-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isSelectedCollImageUrl ? (
-            <img src={finalSelectedCollImgUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+          {resolvedSelectedCollImg ? (
+            <img 
+              src={resolvedSelectedCollImg} 
+              alt="" 
+              onError={(e) => handleImageError(e, selectedCollName)}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} 
+            />
           ) : (
-            selectedCollImage || '✨'
+            selectedColl?.image || '✨'
           )}{' '}
           {selectedCollName}
         </span>
@@ -301,13 +321,14 @@ export default function Collections({
                     style={{ transform: `translateX(-${activeIdx * 100}%)` }}
                   >
                     {images.map((img, i) => {
-                      const finalImgUrl = img.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${img}` : img;
+                      const finalImgUrl = resolveImageUrl(img, product.category);
                       return (
                         <img 
                           key={i}
                           src={finalImgUrl}
                           alt={`${product.name} - ${i + 1}`}
                           className="carousel-image"
+                          onError={(e) => handleImageError(e, product.category)}
                         />
                       );
                     })}
@@ -435,8 +456,9 @@ export default function Collections({
               {selectedProduct.images && selectedProduct.images.length > 0 && (
                 <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '20px' }}>
                   <img 
-                    src={selectedProduct.images[modalImageIndex].startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${selectedProduct.images[modalImageIndex]}` : selectedProduct.images[modalImageIndex]} 
+                    src={resolveImageUrl(selectedProduct.images[modalImageIndex], selectedProduct.category)} 
                     alt={selectedProduct.name}
+                    onError={(e) => handleImageError(e, selectedProduct.category)}
                     style={{ width: '100%', height: '280px', objectFit: 'cover' }}
                   />
                   {selectedProduct.images.length > 1 && (

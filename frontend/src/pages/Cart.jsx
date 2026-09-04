@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trash2, ShoppingBag } from 'lucide-react';
+import { resolveImageUrl, handleImageError } from '../utils/imageUrl';
 
 export default function Cart({ cart, removeFromCart, setView, setCheckoutCart, apiBaseUrl }) {
   const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
@@ -37,11 +38,16 @@ export default function Cart({ cart, removeFromCart, setView, setCheckoutCart, a
         {/* Cart list items */}
         <div className="cart-list">
           {cart.map((item, index) => {
-            const itemImage = item.image || (item.images && item.images.length > 0 ? item.images[0] : '');
-            const finalImg = itemImage.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${itemImage}` : itemImage;
+            const rawImage = item.image || (item.images && item.images.length > 0 ? item.images[0] : '');
+            const finalImg = resolveImageUrl(rawImage, item.category);
             return (
               <div key={index} className="cart-item">
-                <img src={finalImg} className="cart-item-img" alt={item.name} />
+                <img 
+                  src={finalImg} 
+                  className="cart-item-img" 
+                  alt={item.name}
+                  onError={(e) => handleImageError(e, item.category)}
+                />
                 
                 <div className="cart-item-details">
                   <h3 className="cart-item-name">{item.name}</h3>
@@ -87,7 +93,10 @@ export default function Cart({ cart, removeFromCart, setView, setCheckoutCart, a
           </div>
 
           <button 
-            onClick={() => setCheckoutCart(true)}
+            onClick={() => {
+              setCheckoutCart(true);
+              setView('checkout');
+            }}
             className="btn-primary"
             style={{ width: '100%', padding: '16px', fontSize: '18px' }}
           >

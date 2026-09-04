@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, LogOut } from 'lucide-react';
+import { resolveImageUrl, handleImageError } from '../utils/imageUrl';
 
 export default function Orders({ user, setUser, token, setToken, setView, apiBaseUrl }) {
   const [orders, setOrders] = useState([]);
@@ -145,13 +146,14 @@ export default function Orders({ user, setUser, token, setToken, setView, apiBas
                 {/* Items */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {order.items.map((item, idx) => {
-                    const finalImgUrl = item.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${item.image}` : item.image;
+                    const finalImgUrl = resolveImageUrl(item.image, item.category);
                     return (
                       <div key={idx} className="order-item-row" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <img 
                           src={finalImgUrl} 
                           alt={item.name} 
                           className="order-item-thumbnail" 
+                          onError={(e) => handleImageError(e, item.category)}
                           style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
                         />
                         <div className="order-item-info" style={{ flex: 1 }}>

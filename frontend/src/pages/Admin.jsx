@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, Plus, Trash2, Edit, CheckCircle, Package, ShoppingBag, DollarSign, Users, X, Upload, Camera, BarChart2, PlusCircle, ShoppingCart } from 'lucide-react';
+import { resolveImageUrl, handleImageError } from '../utils/imageUrl';
 
 const AVAILABLE_SIZES = ['2.2', '2.4', '2.6', '2.8'];
 const AVAILABLE_COLORS = ['Gold', 'Rose Gold', 'Silver', 'Green', 'Pink', 'Red'];
@@ -703,10 +704,15 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {order.items.map((item, idx) => {
-                          const finalImg = item.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${item.image}` : item.image;
+                          const finalImg = resolveImageUrl(item.image, item.category);
                           return (
                             <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <img src={finalImg} style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px' }} alt="" />
+                              <img 
+                                src={finalImg} 
+                                style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px' }} 
+                                alt="" 
+                                onError={(e) => handleImageError(e, item.category)}
+                              />
                               <div style={{ flex: 1, fontSize: '13px' }}>
                                 <strong>{item.name}</strong> 
                                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }}>
@@ -755,16 +761,18 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                   <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No collections created yet.</p>
                 ) : (
                   collections.map(col => {
-                    const isImageUrl = col.image && (col.image.startsWith('http') || col.image.startsWith('/'));
-                    const finalImg = isImageUrl 
-                      ? (col.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${col.image}` : col.image)
-                      : '';
+                    const finalImg = resolveImageUrl(col.image, col.name);
                     
                     return (
                       <div key={col._id} className="cart-item" style={{ background: '#FFF', display: 'flex', alignItems: 'center' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', background: 'var(--light-pink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>
-                          {isImageUrl ? (
-                            <img src={finalImg} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                          {finalImg ? (
+                            <img 
+                              src={finalImg} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              alt="" 
+                              onError={(e) => handleImageError(e, col.name)}
+                            />
                           ) : (
                             col.image || '✨'
                           )}
@@ -825,16 +833,20 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                 ) : (
                   <div className="admin-products-grid">
                     {products.map(prod => {
-                      const finalImg = prod.images && prod.images.length > 0 
-                        ? (prod.images[0].startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${prod.images[0]}` : prod.images[0])
-                        : 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500';
+                      const rawImg = prod.images && prod.images.length > 0 ? prod.images[0] : '';
+                      const finalImg = resolveImageUrl(rawImg, prod.category);
                       
                       const productColName = collections.find(c => c._id === prod.collectionId)?.name || prod.category;
 
                       return (
                         <div key={prod._id} className="admin-product-card">
                           <div className="admin-product-header">
-                            <img src={finalImg} className="admin-product-thumb" alt="" />
+                            <img 
+                              src={finalImg} 
+                              className="admin-product-thumb" 
+                              alt="" 
+                              onError={(e) => handleImageError(e, prod.category)}
+                            />
                             <div className="admin-product-title-section">
                               <h4 className="admin-product-name">{prod.name}</h4>
                               <div className="admin-product-code">Code: {prod.code || 'N/A'}</div>
@@ -944,10 +956,15 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
 
               <div className="banner-list">
                 {banners.map((ban, index) => {
-                  const finalUrl = ban.url.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${ban.url}` : ban.url;
+                  const finalUrl = resolveImageUrl(ban.url);
                   return (
                     <div key={ban._id || index} className="banner-item">
-                      <img src={finalUrl} className="banner-thumb" alt="" />
+                      <img 
+                        src={finalUrl} 
+                        className="banner-thumb" 
+                        alt="" 
+                        onError={(e) => handleImageError(e)}
+                      />
                       <div className="banner-item-info">
                         <div className="banner-item-title">{ban.title || 'Untitled Banner'}</div>
                       </div>
@@ -1238,7 +1255,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                 <label className="form-label" style={{ fontWeight: '700' }}>Product Images (up to 3 images)</label>
                 {[0, 1, 2].map(idx => {
                   const hasImage = prodForm.images[idx] && prodForm.images[idx].trim() !== '';
-                  const finalImgUrl = hasImage ? (prodForm.images[idx].startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${prodForm.images[idx]}` : prodForm.images[idx]) : '';
+                  const finalImgUrl = hasImage ? resolveImageUrl(prodForm.images[idx], prodForm.category) : '';
                   return (
                     <div 
                       key={idx} 
@@ -1299,6 +1316,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                           <img 
                             src={finalImgUrl} 
                             alt={`Preview ${idx + 1}`} 
+                            onError={(e) => handleImageError(e, prodForm.category)}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                           />
                         </div>

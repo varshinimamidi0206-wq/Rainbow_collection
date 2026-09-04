@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { resolveImageUrl, handleImageError } from '../utils/imageUrl';
 
 export default function Checkout({ 
   cart, 
@@ -214,6 +215,19 @@ export default function Checkout({
     );
   }
 
+  if (itemsToBuy.length === 0 && paymentStep !== 'success') {
+    return (
+      <div className="empty-state" style={{ animation: 'fadeInUp 0.3s ease-out', padding: '60px 20px' }}>
+        <div className="empty-icon">🛍</div>
+        <h3 className="empty-title">No Items to Checkout</h3>
+        <p className="empty-text">Please browse our collections or cart to select items for purchase.</p>
+        <button className="btn-primary" onClick={() => setView('collections')}>
+          Browse Collections
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ animation: 'fadeInUp 0.3s ease-out', paddingBottom: '40px' }}>
       {/* Header bar */}
@@ -250,7 +264,8 @@ export default function Checkout({
             <div key={idx} style={{ display: 'flex', gap: '12px', marginBottom: idx < itemsToBuy.length - 1 ? '16px' : 0, alignItems: 'center' }}>
               {item.image && (
                 <img 
-                  src={item.image.startsWith('/') ? `${apiBaseUrl.replace('/api', '')}${item.image}` : item.image} 
+                  src={resolveImageUrl(item.image, item.category)} 
+                  onError={(e) => handleImageError(e, item.category)}
                   style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '8px' }}
                   alt="" 
                 />

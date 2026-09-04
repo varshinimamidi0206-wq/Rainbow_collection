@@ -5,7 +5,11 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { db } from './db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretrainbowkey123';
@@ -13,7 +17,7 @@ const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'varshinimamidi0206@gmail.com').
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 // Configure Multer for File Uploads
-const uploadsDir = path.resolve('public/uploads');
+const uploadsDir = path.join(__dirname, '../public/uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -379,17 +383,39 @@ router.delete('/collections/:id', authenticateToken(['admin']), async (req, res)
 router.get('/products', async (req, res) => {
   try {
     const { category, collectionId, isNewArrival, active } = req.query;
-    const filter = {};
-    if (category) filter.category = category;
-    if (collectionId) filter.collectionId = collectionId;
+    
+    // Retrieve base products
+    const baseFilter = active === 'true' ? { isActive: true } : {};
+    let products = await db.products.find(baseFilter);
+
     if (isNewArrival !== undefined) {
-      filter.isNewArrival = isNewArrival === 'true';
-    }
-    if (active === 'true') {
-      filter.isActive = true;
+      const isNew = isNewArrival === 'true';
+      products = products.filter(p => p.isNewArrival === isNew);
     }
 
-    let products = await db.products.find(filter);
+    if (collectionId || category) {
+      const searchTarget = (collectionId || category).toString().toLowerCase().trim();
+      
+      // Look up all collections to match ID with name and vice versa
+      const allCollections = await db.collections.find({});
+      const matchedColl = allCollections.find(c => 
+        (c._id && c._id.toString().toLowerCase() === searchTarget) ||
+        (c.id && c.id.toString().toLowerCase() === searchTarget) ||
+        (c.name && c.name.toLowerCase() === searchTarget)
+      );
+
+      const targetId = matchedColl ? (matchedColl._id || matchedColl.id).toString() : collectionId;
+      const targetName = matchedColl ? matchedColl.name.toLowerCase() : (category || collectionId).toString().toLowerCase();
+
+      products = products.filter(p => {
+        const prodColId = (p.collectionId || '').toString().toLowerCase();
+        const prodCat = (p.category || '').toLowerCase();
+        return (targetId && prodColId === targetId.toLowerCase()) || 
+               (targetName && prodCat === targetName) ||
+               (searchTarget && prodColId === searchTarget) ||
+               (searchTarget && prodCat === searchTarget);
+      });
+    }
 
     // Sort products by date descending (newest first)
     products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
