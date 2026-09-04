@@ -122,26 +122,29 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
     }));
   };
 
-  // Selection helpers
-  const selectBangleSize = (prodId, size, e) => {
-    e.stopPropagation();
-    setBangleSelections(prev => ({
-      ...prev,
-      [prodId]: { ...prev[prodId], size }
-    }));
-    setWarningMessage(null);
+  // Helper to determine if a product belongs to Bangles
+  const isBanglesProduct = (prod) => {
+    if (!prod) return false;
+    const cat = (prod.category || '').toLowerCase();
+    const colName = (collections.find(c => (c._id === prod.collectionId || c.id === prod.collectionId))?.name || '').toLowerCase();
+    return cat.includes('bangle') || colName.includes('bangle');
   };
 
-  const selectBangleColor = (prodId, color, e) => {
-    e.stopPropagation();
-    setBangleSelections(prev => ({
-      ...prev,
-      [prodId]: { ...prev[prodId], color }
-    }));
-    setWarningMessage(null);
+  const handleCardBuy = (product) => {
+    if (isBanglesProduct(product)) {
+      openProductModal(product);
+    } else {
+      triggerBuyNow(product);
+    }
   };
 
-
+  const handleCardCart = (product) => {
+    if (isBanglesProduct(product)) {
+      openProductModal(product);
+    } else {
+      addToCart(product);
+    }
+  };
 
   // Modal handlers
   const openProductModal = (product) => {
@@ -157,8 +160,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
 
   const handleModalAddCart = () => {
     const product = selectedProduct;
-    const isBangles = product.category === 'Bangles' || 
-      (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
+    const isBangles = isBanglesProduct(product);
 
     if (isBangles) {
       if (!modalBangleSelection.size || !modalBangleSelection.color) {
@@ -174,8 +176,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
 
   const handleModalBuyNow = () => {
     const product = selectedProduct;
-    const isBangles = product.category === 'Bangles' || 
-      (collections.find(c => c._id === product.collectionId)?.name === 'Bangles');
+    const isBangles = isBanglesProduct(product);
 
     if (isBangles) {
       if (!modalBangleSelection.size || !modalBangleSelection.color) {
@@ -295,26 +296,6 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
         <h2 className="section-title">✨ New Arrivals</h2>
       </div>
 
-      {warningMessage && (
-        <div style={{
-          position: 'sticky',
-          top: '64px',
-          zIndex: 80,
-          background: '#FFE3E3',
-          borderBottom: '1px solid #FFCCD5',
-          color: '#D62E4E',
-          padding: '12px 20px',
-          fontSize: '14px',
-          fontWeight: '700',
-          textAlign: 'center',
-          boxShadow: 'var(--shadow-sm)',
-          margin: '0 20px 10px 20px',
-          borderRadius: 'var(--radius-sm)'
-        }}>
-          ⚠️ {warningMessage}
-        </div>
-      )}
-
       {loadingNewArrivals ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
           <div style={{ 
@@ -331,19 +312,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
           </p>
         </div>
       ) : newArrivals.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '40px 20px',
-          background: 'var(--light-pink)',
-          borderRadius: 'var(--radius-md)',
-          margin: '0 20px',
-          border: '1.5px dashed var(--border-color)'
-        }}>
-          <span style={{ fontSize: '32px' }}>✨</span>
-          <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--primary-pink)', marginTop: '8px' }}>
-            New arrivals coming soon ✨
-          </h3>
-        </div>
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>No new arrivals yet.</p>
       ) : (
         <div className="product-list" style={{ padding: '0 20px' }}>
           {newArrivals.map(product => {
@@ -444,9 +413,19 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
 
                 {/* Details */}
                 <div className="product-details" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <h3 className="product-name" style={{ fontSize: '15px', fontWeight: '700', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <h3 className="product-name" style={{ fontSize: '15px', fontWeight: '700', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {product.name}
                   </h3>
+
+                  {/* Unique product code */}
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '4px' }}>
+                    Code: {product.code || 'N/A'}
+                  </div>
+
+                  {/* One short description */}
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 8px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {product.description || `Beautiful ${product.name}`}
+                  </p>
 
                   <div className="price-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                     <span className="current-price" style={{ fontSize: '16px', fontWeight: '700' }}>₹{product.price}</span>
@@ -458,30 +437,53 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
                     )}
                   </div>
 
-                  {/* BUY button */}
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isOutOfStock) return;
-                      openProductModal(product);
-                    }}
-                    className="btn-primary"
-                    disabled={isOutOfStock}
-                    style={{ 
-                      width: '100%', 
-                      height: '36px', 
-                      fontSize: '13px', 
-                      fontWeight: '700', 
-                      borderRadius: 'var(--radius-sm)',
-                      background: isOutOfStock ? '#ccc' : 'var(--primary-pink)',
-                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                      marginTop: 'auto',
-                      border: 'none',
-                      color: '#FFF'
-                    }}
-                  >
-                    {isOutOfStock ? 'OUT OF STOCK' : 'BUY'}
-                  </button>
+                  {/* BUY and CART buttons */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isOutOfStock) return;
+                        handleCardBuy(product);
+                      }}
+                      className="btn-primary"
+                      disabled={isOutOfStock}
+                      style={{ 
+                        flex: 1, 
+                        height: '34px', 
+                        fontSize: '13px', 
+                        fontWeight: '700', 
+                        borderRadius: 'var(--radius-sm)',
+                        background: isOutOfStock ? '#ccc' : 'var(--primary-pink)',
+                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                        border: 'none',
+                        color: '#FFF',
+                        padding: 0
+                      }}
+                    >
+                      {isOutOfStock ? 'OUT OF STOCK' : 'BUY'}
+                    </button>
+
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isOutOfStock) return;
+                        handleCardCart(product);
+                      }}
+                      className="btn-secondary"
+                      disabled={isOutOfStock}
+                      style={{ 
+                        flex: 1, 
+                        height: '34px', 
+                        fontSize: '13px', 
+                        fontWeight: '700', 
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                        padding: 0
+                      }}
+                    >
+                      {isOutOfStock ? 'SOLD OUT' : 'CART'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -611,9 +613,12 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
               </div>
 
               {/* Title & Info */}
-              <h2 style={{ fontFamily: 'Quicksand', fontSize: '22px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '8px' }}>
+              <h2 style={{ fontFamily: 'Quicksand', fontSize: '22px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '4px' }}>
                 {selectedProduct.name}
               </h2>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                Product Code: <span style={{ color: 'var(--primary-pink)' }}>{selectedProduct.code || 'N/A'}</span>
+              </div>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
                 {selectedProduct.description}
               </p>
@@ -698,7 +703,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
                   disabled={selectedProduct.stock === false}
                   style={selectedProduct.stock === false ? { background: '#ccc', cursor: 'not-allowed' } : {}}
                 >
-                  <ShoppingBag size={18} /> {selectedProduct.stock === false ? 'OUT OF STOCK' : 'BUY NOW'}
+                  <ShoppingBag size={18} /> {selectedProduct.stock === false ? 'OUT OF STOCK' : 'BUY'}
                 </button>
                 <button 
                   onClick={handleModalAddCart}
@@ -706,7 +711,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
                   disabled={selectedProduct.stock === false}
                   style={selectedProduct.stock === false ? { borderColor: '#ccc', color: '#999', cursor: 'not-allowed' } : {}}
                 >
-                  <ShoppingCart size={18} /> {selectedProduct.stock === false ? 'SOLD OUT' : 'ADD CART'}
+                  <ShoppingCart size={18} /> {selectedProduct.stock === false ? 'SOLD OUT' : 'CART'}
                 </button>
               </div>
             </div>

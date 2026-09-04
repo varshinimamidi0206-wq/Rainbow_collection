@@ -51,6 +51,11 @@ export default function Cart({ cart, removeFromCart, setView, setCheckoutCart, a
                 
                 <div className="cart-item-details">
                   <h3 className="cart-item-name">{item.name}</h3>
+                  {item.code && (
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '2px' }}>
+                      Code: {item.code}
+                    </div>
+                  )}
                   
                   {/* Size and Color specifications */}
                   {(item.color || item.size) && (

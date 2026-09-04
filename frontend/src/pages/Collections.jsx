@@ -162,6 +162,27 @@ export default function Collections({
     closeProductModal();
   };
 
+  // Card button handlers: if bangle, open modal to choose size/color; otherwise execute directly
+  const handleCardBuy = (e, product) => {
+    e.stopPropagation();
+    if (product.stock === false) return;
+    if (isBanglesProduct(product)) {
+      openProductModal(product);
+    } else {
+      triggerBuyNow(product);
+    }
+  };
+
+  const handleCardCart = (e, product) => {
+    e.stopPropagation();
+    if (product.stock === false) return;
+    if (isBanglesProduct(product)) {
+      openProductModal(product);
+    } else {
+      addToCart(product);
+    }
+  };
+
   // 1. Render Collections List View
   if (!selectedCategory) {
     return (
@@ -389,45 +410,112 @@ export default function Collections({
                 </div>
 
                 {/* Product details */}
-                <div className="product-details" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <h3 className="product-name" style={{ fontSize: '15px', fontWeight: '700', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div className="product-details" style={{ padding: '10px 12px 14px 12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <h3 
+                    className="product-name" 
+                    style={{ 
+                      fontFamily: 'Quicksand', 
+                      fontSize: '14px', 
+                      fontWeight: '700', 
+                      color: 'var(--text-dark)', 
+                      marginBottom: '2px', 
+                      whiteSpace: 'nowrap', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis' 
+                    }}
+                    title={product.name}
+                  >
                     {product.name}
                   </h3>
 
-                  <div className="price-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <span className="current-price" style={{ fontSize: '16px', fontWeight: '700' }}>₹{product.price}</span>
+                  <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    Code: {product.code || 'N/A'}
+                  </div>
+
+                  <p 
+                    style={{ 
+                      fontSize: '11px', 
+                      color: 'var(--text-muted)', 
+                      margin: '0 0 6px 0', 
+                      lineHeight: '1.3',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {product.description || 'Premium fashion jewellery'}
+                  </p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--primary-pink)' }}>
+                      ₹{product.price}
+                    </span>
                     {hasDiscount && (
                       <>
-                        <span className="original-price" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>₹{originalPrice}</span>
-                        <span className="discount-badge" style={{ fontSize: '10px', padding: '2px 6px' }}>{product.discount}% OFF</span>
+                        <span style={{ fontSize: '11px', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                          ₹{originalPrice}
+                        </span>
+                        <span style={{ 
+                          fontSize: '10px', 
+                          fontWeight: '700', 
+                          color: '#B7791F', 
+                          background: '#FEFCBF', 
+                          padding: '1px 5px', 
+                          borderRadius: '4px' 
+                        }}>
+                          {product.discount}% OFF
+                        </span>
                       </>
                     )}
                   </div>
 
-                  {/* BUY button */}
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isOutOfStock) return;
-                      openProductModal(product);
-                    }}
-                    className="btn-primary"
-                    disabled={isOutOfStock}
-                    style={{ 
-                      width: '100%', 
-                      height: '36px', 
-                      fontSize: '13px', 
-                      fontWeight: '700', 
-                      borderRadius: 'var(--radius-sm)',
-                      background: isOutOfStock ? '#ccc' : 'var(--primary-pink)',
-                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                      marginTop: 'auto',
-                      border: 'none',
-                      color: '#FFF'
-                    }}
-                  >
-                    {isOutOfStock ? 'OUT OF STOCK' : 'BUY'}
-                  </button>
+                  {/* BUY and CART buttons side by side */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                    <button 
+                      onClick={(e) => handleCardBuy(e, product)}
+                      disabled={isOutOfStock}
+                      style={{
+                        flex: 1,
+                        height: '32px',
+                        background: isOutOfStock ? '#ccc' : 'var(--primary-pink)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        padding: '0 4px'
+                      }}
+                    >
+                      <ShoppingBag size={14} /> BUY
+                    </button>
+                    <button 
+                      onClick={(e) => handleCardCart(e, product)}
+                      disabled={isOutOfStock}
+                      style={{
+                        flex: 1,
+                        height: '32px',
+                        background: '#fff',
+                        color: isOutOfStock ? '#999' : 'var(--primary-pink)',
+                        border: `1px solid ${isOutOfStock ? '#ccc' : 'var(--primary-pink)'}`,
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        padding: '0 4px'
+                      }}
+                    >
+                      <ShoppingCart size={14} /> CART
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -557,9 +645,12 @@ export default function Collections({
               </div>
 
               {/* Title & Info */}
-              <h2 style={{ fontFamily: 'Quicksand', fontSize: '22px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '8px' }}>
+              <h2 style={{ fontFamily: 'Quicksand', fontSize: '22px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '4px' }}>
                 {selectedProduct.name}
               </h2>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                Product Code: <span style={{ color: 'var(--primary-pink)' }}>{selectedProduct.code || 'N/A'}</span>
+              </div>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
                 {selectedProduct.description}
               </p>
@@ -644,7 +735,7 @@ export default function Collections({
                   disabled={selectedProduct.stock === false}
                   style={selectedProduct.stock === false ? { background: '#ccc', cursor: 'not-allowed' } : {}}
                 >
-                  <ShoppingBag size={18} /> {selectedProduct.stock === false ? 'OUT OF STOCK' : 'BUY NOW'}
+                  <ShoppingBag size={18} /> {selectedProduct.stock === false ? 'OUT OF STOCK' : 'BUY'}
                 </button>
                 <button 
                   onClick={handleModalAddCart}
@@ -652,7 +743,7 @@ export default function Collections({
                   disabled={selectedProduct.stock === false}
                   style={selectedProduct.stock === false ? { borderColor: '#ccc', color: '#999', cursor: 'not-allowed' } : {}}
                 >
-                  <ShoppingCart size={18} /> {selectedProduct.stock === false ? 'SOLD OUT' : 'ADD CART'}
+                  <ShoppingCart size={18} /> {selectedProduct.stock === false ? 'SOLD OUT' : 'CART'}
                 </button>
               </div>
             </div>

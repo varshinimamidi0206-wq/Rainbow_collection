@@ -34,7 +34,8 @@ export default function Checkout({
         name: item.name,
         code: item.code || '',
         price: item.price,
-        image: item.images && item.images.length > 0 ? item.images[0] : '',
+        discount: item.discount || 0,
+        image: item.images && item.images.length > 0 ? item.images[0] : (item.image || ''),
         color: item.color || '',
         size: item.size || ''
       }))
@@ -44,7 +45,8 @@ export default function Checkout({
           name: directBuyItem.name,
           code: directBuyItem.code || '',
           price: directBuyItem.price,
-          image: directBuyItem.image,
+          discount: directBuyItem.discount || 0,
+          image: directBuyItem.image || (directBuyItem.images && directBuyItem.images.length > 0 ? directBuyItem.images[0] : ''),
           color: directBuyItem.color || '',
           size: directBuyItem.size || ''
         }]
@@ -88,28 +90,28 @@ export default function Checkout({
       setPlacedOrder(res);
       if (checkoutCart) clearCart();
 
-      // 2. Prepare the WhatsApp click-to-chat message
+      // 2. Prepare the WhatsApp click-to-chat message matching the exact requested format
       let msg = `Rainbow Collection Order\n\n`;
       itemsToBuy.forEach((item, idx) => {
-        msg += `Item: ${item.name}\n`;
-        if (item.code) msg += `Code: ${item.code}\n`;
-        msg += `Price: ₹${item.price}\n`;
+        msg += `Product Name: ${item.name}\n`;
+        msg += `Product Unique Code: ${item.code || 'N/A'}\n`;
         if (item.size) msg += `Size: ${item.size}\n`;
         if (item.color) msg += `Color: ${item.color}\n`;
-        if (idx < itemsToBuy.length - 1) msg += `\n`;
+        msg += `Price: ₹${item.price}\n`;
+        if (item.discount > 0) msg += `Discount: ${item.discount}%\n`;
+        if (idx < itemsToBuy.length - 1) msg += `\n---\n\n`;
       });
-      msg += `\n`;
-      msg += `Name: ${name.trim()}\n`;
-      msg += `Phone: ${phone.trim()}\n\n`;
+      msg += `\nCustomer Name: ${name.trim()}\n`;
+      msg += `Mobile Number: ${phone.trim()}\n\n`;
       msg += `Address:\n`;
       msg += `Pincode: ${pincode.trim()}\n`;
       msg += `Street: ${street.trim()}\n`;
       msg += `Village/City: ${villageCity.trim()}\n`;
       msg += `State: ${stateValue.trim()}\n\n`;
-      msg += `Nearest Showroom: ${branch}\n`;
-      msg += `Payment: ${paymentMethod}`;
+      msg += `Payment Option: ${paymentMethod}\n`;
+      msg += `Nearest Showroom: ${branch}`;
 
-      // 3. Open WhatsApp click-to-chat URL
+      // 3. Open WhatsApp externally using the WhatsApp deep-link URL (seller number: +91 89195 90533)
       const waUrl = `https://wa.me/918919590533?text=${encodeURIComponent(msg)}`;
       window.open(waUrl, '_blank');
 
