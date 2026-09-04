@@ -709,7 +709,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                             <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <img 
                                 src={finalImg} 
-                                style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px' }} 
+                                style={{ width: '36px', height: '36px', objectFit: 'contain', objectPosition: 'center', background: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '1px' }} 
                                 alt="" 
                                 onError={(e) => handleImageError(e, item.category)}
                               />
@@ -769,7 +769,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                           {finalImg ? (
                             <img 
                               src={finalImg} 
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', background: '#FFFFFF', padding: '2px' }} 
                               alt="" 
                               onError={(e) => handleImageError(e, col.name)}
                             />
@@ -1317,7 +1317,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                             src={finalImgUrl} 
                             alt={`Preview ${idx + 1}`} 
                             onError={(e) => handleImageError(e, prodForm.category)}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', background: '#FFFFFF', padding: '4px' }} 
                           />
                         </div>
                       )}

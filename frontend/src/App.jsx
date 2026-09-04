@@ -544,12 +544,14 @@ export default function App() {
               ) : (
                 <div style={{ marginTop: '15px' }}>
                   {searchResult.images && searchResult.images.length > 0 && (
-                     <img 
-                       src={resolveImageUrl(searchResult.images[0], searchResult.category)} 
-                       alt={searchResult.name}
-                       onError={(e) => handleImageError(e, searchResult.category)}
-                       style={{ width: '100%', height: '240px', objectFit: 'cover', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}
-                     />
+                    <div style={{ width: '100%', height: '240px', background: '#FFFFFF', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', overflow: 'hidden' }}>
+                      <img 
+                        src={resolveImageUrl(searchResult.images[0], searchResult.category)} 
+                        alt={searchResult.name}
+                        onError={(e) => handleImageError(e, searchResult.category)}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', padding: '8px', display: 'block' }}
+                      />
+                    </div>
                   )}
 
                   <div style={{ marginBottom: '12px' }}>

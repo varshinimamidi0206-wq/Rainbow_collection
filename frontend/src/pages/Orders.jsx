@@ -154,7 +154,7 @@ export default function Orders({ user, setUser, token, setToken, setView, apiBas
                           alt={item.name} 
                           className="order-item-thumbnail" 
                           onError={(e) => handleImageError(e, item.category)}
-                          style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
+                          style={{ width: '48px', height: '48px', objectFit: 'contain', objectPosition: 'center', background: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '2px' }}
                         />
                         <div className="order-item-info" style={{ flex: 1 }}>
                           <div className="order-item-title" style={{ fontWeight: '600', fontSize: '13px' }}>{item.name}</div>

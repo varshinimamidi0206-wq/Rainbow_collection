@@ -16,6 +16,9 @@ export const CATEGORY_DEFAULT_IMAGES = {
   'rental jewellery': 'https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?w=500'
 };
 
+// Clean neutral SVG placeholder: light neutral background, subtle jewellery diamond icon, clean label
+export const NEUTRAL_PLACEHOLDER_IMAGE = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400' fill='none'%3E%3Crect width='400' height='400' fill='%23F8F9FA'/%3E%3Cpath d='M200 130L260 190L200 250L140 190L200 130Z' stroke='%23CED4DA' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='%23FFFFFF'/%3E%3Cpath d='M170 190H230' stroke='%23CED4DA' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M200 160V220' stroke='%23CED4DA' stroke-width='2' stroke-linecap='round'/%3E%3Ctext x='50%25' y='295' text-anchor='middle' fill='%23868E96' font-family='system-ui, -apple-system, sans-serif' font-size='14' font-weight='600' letter-spacing='0.5'%3ERainbow Collection%3C/text%3E%3C/svg%3E";
+
 export const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500';
 
 /**
@@ -65,10 +68,15 @@ export const resolveImageUrl = (img, categoryName = '') => {
   const categoryDefault = CATEGORY_DEFAULT_IMAGES[normCategory] || null;
 
   if (!img || typeof img !== 'string') {
-    return categoryDefault || '';
+    return categoryDefault || NEUTRAL_PLACEHOLDER_IMAGE;
   }
 
   const trimmed = img.trim();
+
+  // Guard against any accidental local filesystem paths
+  if (trimmed.startsWith('C:') || trimmed.startsWith('c:') || trimmed.startsWith('file://')) {
+    return categoryDefault || NEUTRAL_PLACEHOLDER_IMAGE;
+  }
 
   // If already absolute URL or base64 data
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
@@ -102,16 +110,40 @@ export const resolveImageUrl = (img, categoryName = '') => {
 };
 
 /**
- * Helper to handle <img> onError events by falling back to category photo or general fallback
+ * Helper to handle <img> onError events by falling back to category photo,
+ * neutral placeholder SVG, and logging the actual failed URL during development.
  */
 export const handleImageError = (e, categoryName = '', fallbackImage = DEFAULT_FALLBACK_IMAGE) => {
+  const currentSrc = e.currentTarget?.src || '';
+
+  // Log the failed URL for development diagnostics
+  if (typeof console !== 'undefined' && console.warn) {
+    console.warn(`[Rainbow Collection] Failed to load image: ${currentSrc}`, {
+      category: categoryName,
+      element: e.currentTarget
+    });
+  }
+
+  // Prevent infinite recursive onError loops
+  e.currentTarget.onerror = null;
+
   const normCategory = (categoryName || '').toLowerCase().trim();
   const categoryDefault = CATEGORY_DEFAULT_IMAGES[normCategory];
-  const currentSrc = e.currentTarget.src;
 
+  // Try category-specific default image first, unless that was the failed URL
   if (categoryDefault && currentSrc !== categoryDefault) {
+    e.currentTarget.onerror = () => {
+      e.currentTarget.onerror = null;
+      e.currentTarget.src = NEUTRAL_PLACEHOLDER_IMAGE;
+    };
     e.currentTarget.src = categoryDefault;
   } else if (fallbackImage && currentSrc !== fallbackImage) {
+    e.currentTarget.onerror = () => {
+      e.currentTarget.onerror = null;
+      e.currentTarget.src = NEUTRAL_PLACEHOLDER_IMAGE;
+    };
     e.currentTarget.src = fallbackImage;
+  } else {
+    e.currentTarget.src = NEUTRAL_PLACEHOLDER_IMAGE;
   }
 };

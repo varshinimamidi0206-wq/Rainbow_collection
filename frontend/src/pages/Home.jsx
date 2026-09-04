@@ -278,21 +278,8 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
         </div>
       )}
 
-      {/* Secondary promo banner */}
-      <div className="promo-banner-container" style={{ margin: '10px 20px 24px 20px' }}>
-        <div className="promo-banner-icon">👑</div>
-        <div className="promo-banner-text">
-          <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '4px' }}>
-            Bridal Rental Jewellery
-          </h4>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-            Premium wedding sets available for rent. Look gorgeous on your special day!
-          </p>
-        </div>
-      </div>
-
       {/* ✨ New Arrivals Section */}
-      <div className="section-header" style={{ marginTop: '24px' }}>
+      <div className="section-header" style={{ marginTop: '16px' }}>
         <h2 className="section-title">✨ New Arrivals</h2>
       </div>
 
@@ -520,12 +507,12 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
             <div style={{ padding: '20px' }}>
               {/* Product Images Modal Carousel */}
               {selectedProduct.images && selectedProduct.images.length > 0 && (
-                <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '20px' }}>
+                <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '20px', background: '#FFFFFF', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <img 
                     src={resolveImageUrl(selectedProduct.images[modalImageIndex], selectedProduct.category)} 
                     alt={selectedProduct.name}
                     onError={(e) => handleImageError(e, selectedProduct.category)}
-                    style={{ width: '100%', height: '280px', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '280px', objectFit: 'contain', objectPosition: 'center', padding: '8px', display: 'block' }}
                   />
                   {selectedProduct.images.length > 1 && (
                     <>

@@ -268,7 +268,7 @@ export default function Checkout({
                 <img 
                   src={resolveImageUrl(item.image, item.category)} 
                   onError={(e) => handleImageError(e, item.category)}
-                  style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '8px' }}
+                  style={{ width: '56px', height: '56px', objectFit: 'contain', objectPosition: 'center', background: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '2px' }}
                   alt="" 
                 />
               )}

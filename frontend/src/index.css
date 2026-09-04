@@ -386,7 +386,7 @@ body {
   border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 8px;
-  background: var(--light-pink);
+  background: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -397,7 +397,11 @@ body {
   width: 100%;
   height: 100%;
   aspect-ratio: 1 / 1;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  padding: 4px;
+  box-sizing: border-box;
+  display: block;
 }
 
 .scroll-image-fallback {
@@ -460,14 +464,20 @@ body {
   height: 140px;
   overflow: hidden;
   position: relative;
-  background: var(--light-pink);
+  background: #FFFFFF;
   border-bottom: 2.5px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .category-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  padding: 6px;
+  box-sizing: border-box;
   display: block;
 }
 
@@ -568,13 +578,20 @@ body {
 /* Product Image Carousel */
 .product-carousel {
   width: 100%;
-  height: clamp(200px, 25vw, 280px); /* Proportional scaling height */
+  height: 260px; /* Standard professional e-commerce product image height */
   position: relative;
-  background: #f7f7f7;
+  background: #FFFFFF;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-
+@media (max-width: 480px) {
+  .product-carousel {
+    height: 220px; /* Responsive mobile height ensuring clear visibility without excessive height */
+  }
+}
 
 .carousel-track {
   width: 100%;
@@ -587,7 +604,12 @@ body {
   flex: 0 0 100%;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  background: #FFFFFF;
+  padding: 8px;
+  box-sizing: border-box;
+  display: block;
 }
 
 .carousel-btn {
@@ -932,10 +954,13 @@ body {
 .cart-item-img {
   width: 75px;
   height: 75px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   border-radius: var(--radius-sm);
-  background: #f7f7f7;
+  background: #FFFFFF;
   border: 1px solid var(--border-color);
+  padding: 3px;
+  box-sizing: border-box;
 }
 
 .cart-item-details {
@@ -1079,8 +1104,12 @@ body {
   width: 44px;
   height: 44px;
   border-radius: var(--radius-sm);
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  background: #FFFFFF;
   border: 1px solid var(--border-color);
+  padding: 2px;
+  box-sizing: border-box;
 }
 
 .order-item-info {
@@ -1360,10 +1389,14 @@ body {
 .preview-thumbnail {
   width: 60px;
   height: 60px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   position: relative;
+  background: #FFFFFF;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
 /* Empty placeholder states */
@@ -1817,11 +1850,14 @@ body {
 .admin-product-thumb {
   width: 60px;
   height: 60px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   border-radius: 8px;
   border: 1px solid var(--border-color);
   flex-shrink: 0;
-  background: #f7f7f7;
+  background: #FFFFFF;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
 .admin-product-title-section {

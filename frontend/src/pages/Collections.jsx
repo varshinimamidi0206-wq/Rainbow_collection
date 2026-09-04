@@ -275,7 +275,7 @@ export default function Collections({
               src={resolvedSelectedCollImg} 
               alt="" 
               onError={(e) => handleImageError(e, selectedCollName)}
-              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} 
+              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'contain', objectPosition: 'center', background: '#FFFFFF', border: '1px solid var(--border-color)', padding: '1px' }} 
             />
           ) : (
             selectedColl?.image || '✨'
@@ -552,12 +552,12 @@ export default function Collections({
             <div style={{ padding: '20px' }}>
               {/* Product Images Modal Carousel */}
               {selectedProduct.images && selectedProduct.images.length > 0 && (
-                <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '20px' }}>
+                <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '20px', background: '#FFFFFF', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <img 
                     src={resolveImageUrl(selectedProduct.images[modalImageIndex], selectedProduct.category)} 
                     alt={selectedProduct.name}
                     onError={(e) => handleImageError(e, selectedProduct.category)}
-                    style={{ width: '100%', height: '280px', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '280px', objectFit: 'contain', objectPosition: 'center', padding: '8px', display: 'block' }}
                   />
                   {selectedProduct.images.length > 1 && (
                     <>
