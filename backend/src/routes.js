@@ -15,7 +15,10 @@ const __dirname = path.dirname(__filename);
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretrainbowkey123';
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'rainbowcollections@gmail.com').toLowerCase().trim();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'rainbow@123';
+const rawAdminPw = (process.env.ADMIN_PASSWORD || '').trim();
+const ADMIN_PASSWORD = (rawAdminPw && rawAdminPw !== 'admin123' && rawAdminPw !== 'your_secure_admin_password_here')
+  ? rawAdminPw
+  : 'rainbow@123';
 
 const ADMIN_EMAILS = [
   ADMIN_EMAIL,
