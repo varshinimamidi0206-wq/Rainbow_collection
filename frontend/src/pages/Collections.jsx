@@ -326,9 +326,8 @@ export default function Collections({
         <div className="product-list">
           {products.map(product => {
             const activeIdx = carouselIndices[product._id] || 0;
-            const images = product.images && product.images.length > 0 
-              ? product.images 
-              : ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500']; // default image fallback
+            const rawImages = (product.images || []).filter(img => typeof img === 'string' && img.trim() !== '');
+            const images = rawImages.length > 0 ? rawImages : [''];
             
             // Calculate original price based on discount
             const hasDiscount = product.discount > 0;

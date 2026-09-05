@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import router, { seedDatabase } from './routes.js';
+import { db } from './db.js';
 
 // Resolve __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -54,6 +55,44 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadsDir));
+app.use('/api/uploads', express.static(uploadsDir));
+
+// Self-healing image handler: if file is not on ephemeral disk, fetch from MongoDB & cache to disk
+const serveOrRecoverImage = async (req, res, next) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(uploadsDir, filename);
+
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+
+    // Recover from MongoDB image store
+    const imageDoc = await db.images.findOne({ filename });
+    if (imageDoc && imageDoc.data) {
+      const buffer = Buffer.from(imageDoc.data, 'base64');
+      // Recreate disk cache
+      try {
+        fs.writeFileSync(filePath, buffer);
+        console.log(`[Self-Healing] Restored missing file to disk cache: ${filename}`);
+      } catch (writeErr) {
+        console.warn(`[Self-Healing] Disk write warning: ${writeErr.message}`);
+      }
+
+      res.setHeader('Content-Type', imageDoc.mimeType || 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(buffer);
+    }
+
+    return res.status(404).json({ message: 'Image not found' });
+  } catch (err) {
+    console.error('[Image Serve Error]', err);
+    next(err);
+  }
+};
+
+app.get('/uploads/:filename', serveOrRecoverImage);
+app.get('/api/uploads/:filename', serveOrRecoverImage);
 
 // Serve other public assets if needed
 app.use(express.static(path.join(__dirname, '../public')));

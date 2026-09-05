@@ -40,8 +40,12 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const rawCode = (req.body && req.body.productCode) || (req.query && req.query.productCode) || '';
+    const cleanCode = rawCode.toString().replace(/[^a-zA-Z0-9_-]/g, '').trim();
+    const prefix = cleanCode ? `${cleanCode}_` : 'prd_';
+    const uniqueSuffix = Date.now() + '_' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `${prefix}${uniqueSuffix}${ext}`);
   }
 });
 const upload = multer({ storage });
@@ -720,7 +724,8 @@ router.post('/products', authenticateToken(['admin']), async (req, res) => {
 
     const parsedColors = Array.isArray(colors) ? colors : (colors ? JSON.parse(colors) : []);
     const parsedSizes = Array.isArray(sizes) ? sizes : (sizes ? JSON.parse(sizes) : []);
-    const parsedImages = Array.isArray(images) ? images : (images ? JSON.parse(images) : []);
+    const rawImages = Array.isArray(images) ? images : (images ? JSON.parse(images) : []);
+    const parsedImages = rawImages.filter(img => typeof img === 'string' && img.trim() !== '');
 
     // Resolve category name from collectionId for backward compatibility
     let resolvedCategory = category || 'Bangles';
@@ -730,6 +735,8 @@ router.post('/products', authenticateToken(['admin']), async (req, res) => {
         resolvedCategory = coll.name;
       }
     }
+
+    console.log(`[Product Create] Code: "${normalizedCode}", Name: "${name}", Images (${parsedImages.length}):`, parsedImages);
 
     const product = await db.products.create({
       name,
@@ -772,7 +779,8 @@ router.put('/products/:id', authenticateToken(['admin']), async (req, res) => {
 
     const parsedColors = Array.isArray(colors) ? colors : (colors ? JSON.parse(colors) : []);
     const parsedSizes = Array.isArray(sizes) ? sizes : (sizes ? JSON.parse(sizes) : []);
-    const parsedImages = Array.isArray(images) ? images : (images ? JSON.parse(images) : []);
+    const rawImages = Array.isArray(images) ? images : (images ? JSON.parse(images) : []);
+    const parsedImages = rawImages.filter(img => typeof img === 'string' && img.trim() !== '');
 
     // Resolve category name from collectionId for backward compatibility
     let resolvedCategory = category;
@@ -782,6 +790,8 @@ router.put('/products/:id', authenticateToken(['admin']), async (req, res) => {
         resolvedCategory = coll.name;
       }
     }
+
+    console.log(`[Product Update] ID: "${req.params.id}", Code: "${normalizedCode}", Name: "${name}", Images (${parsedImages.length}):`, parsedImages);
 
     const updated = await db.products.findByIdAndUpdate(req.params.id, {
       name,
@@ -798,7 +808,7 @@ router.put('/products/:id', authenticateToken(['admin']), async (req, res) => {
       stock: stock !== undefined ? (stock === 'true' || stock === true) : true,
       isNewArrival: isNewArrival !== undefined ? (isNewArrival === 'true' || isNewArrival === true) : false,
       isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
-    });
+    }, { new: true });
 
     if (!updated) return res.status(404).json({ message: 'Product not found' });
     res.json(updated);
@@ -927,9 +937,12 @@ router.post('/upload', upload.array('files', 3), async (req, res) => {
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
+    const productCode = (req.body && req.body.productCode) || (req.query && req.query.productCode) || '';
     const fileUrls = [];
     
     for (const file of req.files) {
+      console.log(`[Upload API] Incoming file: "${file.originalname}" (${file.size} bytes), Product Code: "${productCode || 'N/A'}"`);
+
       if (isCloudinaryConfigured) {
         // Upload to Cloudinary
         const result = await cloudinary.uploader.upload(file.path, {
@@ -937,17 +950,36 @@ router.post('/upload', upload.array('files', 3), async (req, res) => {
           folder: 'rainbow_jewellers'
         });
         fileUrls.push(result.secure_url);
+        console.log(`[Upload API] Product: ${productCode || 'N/A'} | Selected: ${file.originalname} | Cloudinary URL: ${result.secure_url}`);
         // Delete local temporary file
-        fs.unlinkSync(file.path);
+        try { fs.unlinkSync(file.path); } catch (e) {}
       } else {
-        // Serve local static file
-        // Construct backend file URL: /uploads/filename
-        fileUrls.push(`/uploads/${file.filename}`);
+        // Read file buffer and save to MongoDB persistent Image collection
+        try {
+          const fileBuffer = fs.readFileSync(file.path);
+          const base64Data = fileBuffer.toString('base64');
+          
+          await db.images.create({
+            filename: file.filename,
+            originalName: file.originalname,
+            mimeType: file.mimetype || 'image/jpeg',
+            data: base64Data,
+            size: file.size
+          });
+          console.log(`[Upload API] Persisted image "${file.filename}" to MongoDB image store.`);
+        } catch (dbErr) {
+          console.error('[Upload API] Warning: Failed to persist image to MongoDB:', dbErr.message);
+        }
+
+        const savedUrl = `/uploads/${file.filename}`;
+        fileUrls.push(savedUrl);
+        console.log(`[Upload API] Product ${productCode || 'N/A'} | Selected: ${file.originalname} | Saved URL: ${savedUrl}`);
       }
     }
 
     res.json({ urls: fileUrls });
   } catch (error) {
+    console.error('[Upload API Error]', error);
     res.status(500).json({ message: error.message });
   }
 });

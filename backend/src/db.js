@@ -178,11 +178,21 @@ if (useMongoDB) {
       createdAt: { type: Date, default: Date.now }
     });
 
+    const ImageSchema = new mongoose.Schema({
+      filename: { type: String, unique: true, index: true },
+      originalName: String,
+      mimeType: String,
+      data: String, // Base64 encoded payload
+      size: Number,
+      createdAt: { type: Date, default: Date.now }
+    });
+
     db.collections = mongoose.model('Collection', CollectionSchema);
     db.products = mongoose.model('Product', ProductSchema);
     db.orders = mongoose.model('Order', OrderSchema);
     db.customers = mongoose.model('Customer', CustomerSchema);
     db.banners = mongoose.model('Banner', BannerSchema);
+    db.images = mongoose.model('Image', ImageSchema);
   } catch (error) {
     console.error('MongoDB connection failed, falling back to local JSON files:', error.message);
     initLocalDB();
@@ -198,6 +208,7 @@ function initLocalDB() {
   db.orders = new LocalCollection('orders');
   db.customers = new LocalCollection('customers');
   db.banners = new LocalCollection('banners');
+  db.images = new LocalCollection('images');
 }
 
 export { db };

@@ -20,6 +20,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   const [orders, setOrders] = useState([]);
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [uploadingSlots, setUploadingSlots] = useState({ 0: false, 1: false, 2: false });
 
   // Product form state
   const [editProduct, setEditProduct] = useState(null); // if null, adding new
@@ -227,8 +228,8 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     setActiveTab('edit-product');
   };
 
-  // Open modal for adding product
-  const openAddModal = () => {
+  // Centralized form reset to ensure zero state bleeding between products
+  const resetProductForm = () => {
     setEditProduct(null);
     setCustomColorInput('');
     setCustomColorsList([]);
@@ -249,6 +250,11 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
       isNewArrival: false,
       isActive: true
     });
+  };
+
+  // Open modal for adding product
+  const openAddModal = () => {
+    resetProductForm();
     setActiveTab('add-product');
   };
 
@@ -287,6 +293,19 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
       images: filteredImages
     };
 
+    // Validation: Warn during development if any image URL matches another product
+    const otherProducts = products.filter(p => !editProduct || p._id !== editProduct._id);
+    const duplicateImgs = [];
+    filteredImages.forEach(imgUrl => {
+      const match = otherProducts.find(p => (p.images || []).includes(imgUrl));
+      if (match) {
+        duplicateImgs.push({ url: imgUrl, code: match.code || match.name });
+      }
+    });
+    if (duplicateImgs.length > 0) {
+      console.warn(`[Rainbow Admin] Warning: Image URL already assigned to another product:`, duplicateImgs);
+    }
+
     const method = editProduct ? 'PUT' : 'POST';
     const url = editProduct 
       ? `${apiBaseUrl}/products/${editProduct._id}`
@@ -302,6 +321,8 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     })
       .then(async res => {
         if (res.ok) {
+          console.log(`[Rainbow Admin] Product "${productPayload.code}" saved successfully with images:`, productPayload.images);
+          resetProductForm();
           setActiveTab('products');
           fetchDashboardData();
         } else {
@@ -448,24 +469,50 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   // File Uploader logic (handles product images)
   const handleFileUpload = (e, index) => {
     const file = e.target.files[0];
+    // Reset file input so selecting the same file or modifying it fires onChange
+    e.target.value = '';
     if (!file) return;
 
+    console.log(`[Rainbow Admin] Uploading image for slot ${index + 1}: "${file.name}" (${file.size} bytes), Product Code: "${prodForm.code || 'UNASSIGNED'}"`);
+    setUploadingSlots(prev => ({ ...prev, [index]: true }));
+
     const formData = new FormData();
+    if (prodForm.code) {
+      formData.append('productCode', prodForm.code);
+    }
     formData.append('files', file);
 
     fetch(`${apiBaseUrl}/upload`, {
       method: 'POST',
       body: formData
     })
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Upload failed with status ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.urls && data.urls.length > 0) {
-          const updatedImgs = [...prodForm.images];
-          updatedImgs[index] = data.urls[0];
-          setProdForm(prev => ({ ...prev, images: updatedImgs }));
+          const uploadedUrl = data.urls[0];
+          console.log(`[Rainbow Admin] Product: "${prodForm.code || 'N/A'}" | Selected: "${file.name}" | Saved: "${uploadedUrl}"`);
+
+          setProdForm(prev => {
+            const currentImgs = [...(prev.images || ['', '', ''])];
+            while (currentImgs.length < 3) currentImgs.push('');
+            currentImgs[index] = uploadedUrl;
+            return { ...prev, images: currentImgs };
+          });
         }
       })
-      .catch(err => alert('File upload failed'));
+      .catch(err => {
+        console.error('[Rainbow Admin] File upload error:', err);
+        alert(`File upload failed: ${err.message}`);
+      })
+      .finally(() => {
+        setUploadingSlots(prev => ({ ...prev, [index]: false }));
+      });
   };
 
   // File Uploader logic (handles collection images)
@@ -541,7 +588,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
         </button>
         <button 
           className={`admin-tab ${activeTab === 'products' ? 'active' : ''}`}
-          onClick={() => { setEditProduct(null); setActiveTab('products'); }}
+          onClick={() => { resetProductForm(); setActiveTab('products'); }}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 0', minHeight: '60px' }}
         >
           <ShoppingBag size={18} />
@@ -992,7 +1039,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
             <button 
               type="button" 
               className="btn-primary" 
-              onClick={() => { setEditProduct(null); setActiveTab('products'); }}
+              onClick={() => { resetProductForm(); setActiveTab('products'); }}
               style={{ padding: '6px 12px', fontSize: '12.5px', background: 'var(--white)', color: 'var(--primary-pink)', border: '1.5px solid var(--border-color)', borderRadius: '8px' }}
             >
               Cancel / Back
@@ -1331,19 +1378,21 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                           border: '1.5px solid var(--border-color)',
                           borderRadius: '10px',
                           color: 'var(--primary-pink)',
-                          cursor: 'pointer',
+                          cursor: uploadingSlots[idx] ? 'wait' : 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
                           fontWeight: '600',
-                          fontSize: '13px'
+                          fontSize: '13px',
+                          opacity: uploadingSlots[idx] ? 0.7 : 1
                         }}>
                           <Upload size={16} />
-                          <span>Upload File</span>
+                          <span>{uploadingSlots[idx] ? 'Uploading...' : 'Upload File'}</span>
                           <input 
                             type="file" 
                             accept="image/*" 
+                            disabled={uploadingSlots[idx]}
                             style={{ display: 'none' }}
                             onChange={e => handleFileUpload(e, idx)}
                           />
@@ -1355,22 +1404,23 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                           background: 'var(--primary-pink)',
                           borderRadius: '10px',
                           color: 'var(--white)',
-                          cursor: 'pointer',
+                          cursor: uploadingSlots[idx] ? 'wait' : 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
                           fontWeight: '600',
-                          fontSize: '13px'
+                          fontSize: '13px',
+                          opacity: uploadingSlots[idx] ? 0.7 : 1
                         }}>
                           <Camera size={16} />
-                          <span>Take Photo</span>
+                          <span>{uploadingSlots[idx] ? 'Uploading...' : 'Take Photo'}</span>
                           <input 
                             type="file" 
                             accept="image/*" 
                             capture="environment"
+                            disabled={uploadingSlots[idx]}
                             style={{ display: 'none' }}
-                            onClick={handleCameraClick}
                             onChange={e => handleFileUpload(e, idx)}
                           />
                         </label>

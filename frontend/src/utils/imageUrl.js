@@ -64,18 +64,18 @@ export const getBaseUrls = () => {
  * @returns {string} Fully resolved image URL, or empty string if it should show emoji fallback
  */
 export const resolveImageUrl = (img, categoryName = '') => {
-  const normCategory = (categoryName || '').toLowerCase().trim();
-  const categoryDefault = CATEGORY_DEFAULT_IMAGES[normCategory] || null;
-
   if (!img || typeof img !== 'string') {
-    return categoryDefault || NEUTRAL_PLACEHOLDER_IMAGE;
+    return NEUTRAL_PLACEHOLDER_IMAGE;
   }
 
   const trimmed = img.trim();
+  if (!trimmed) {
+    return NEUTRAL_PLACEHOLDER_IMAGE;
+  }
 
   // Guard against any accidental local filesystem paths
   if (trimmed.startsWith('C:') || trimmed.startsWith('c:') || trimmed.startsWith('file://')) {
-    return categoryDefault || NEUTRAL_PLACEHOLDER_IMAGE;
+    return NEUTRAL_PLACEHOLDER_IMAGE;
   }
 
   // If already absolute URL or base64 data
@@ -90,12 +90,7 @@ export const resolveImageUrl = (img, categoryName = '') => {
     return `${backendBaseUrl}${cleanPath}`;
   }
 
-  // If it's an emoji or other placeholder text, check if we have a real photo for this category
-  if (categoryDefault) {
-    return categoryDefault;
-  }
-
-  // Check if string contains emoji/non-URL characters
+  // Check if string contains emoji/non-URL characters (e.g. collection icon like 💍)
   if (!trimmed.includes('.') && !trimmed.includes('/')) {
     return ''; // Signals caller that this is purely an emoji/icon
   }
@@ -110,40 +105,22 @@ export const resolveImageUrl = (img, categoryName = '') => {
 };
 
 /**
- * Helper to handle <img> onError events by falling back to category photo,
- * neutral placeholder SVG, and logging the actual failed URL during development.
+ * Helper to handle <img> onError events by falling back to a clean neutral placeholder,
+ * preventing multiple different products from ever displaying the same fallback photo.
  */
-export const handleImageError = (e, categoryName = '', fallbackImage = DEFAULT_FALLBACK_IMAGE) => {
+export const handleImageError = (e, categoryName = '', fallbackImage = null) => {
   const currentSrc = e.currentTarget?.src || '';
 
   // Log the failed URL for development diagnostics
   if (typeof console !== 'undefined' && console.warn) {
-    console.warn(`[Rainbow Collection] Failed to load image: ${currentSrc}`, {
-      category: categoryName,
-      element: e.currentTarget
+    console.warn(`[Rainbow Collection] Image failed to load: ${currentSrc}`, {
+      category: categoryName
     });
   }
 
   // Prevent infinite recursive onError loops
   e.currentTarget.onerror = null;
 
-  const normCategory = (categoryName || '').toLowerCase().trim();
-  const categoryDefault = CATEGORY_DEFAULT_IMAGES[normCategory];
-
-  // Try category-specific default image first, unless that was the failed URL
-  if (categoryDefault && currentSrc !== categoryDefault) {
-    e.currentTarget.onerror = () => {
-      e.currentTarget.onerror = null;
-      e.currentTarget.src = NEUTRAL_PLACEHOLDER_IMAGE;
-    };
-    e.currentTarget.src = categoryDefault;
-  } else if (fallbackImage && currentSrc !== fallbackImage) {
-    e.currentTarget.onerror = () => {
-      e.currentTarget.onerror = null;
-      e.currentTarget.src = NEUTRAL_PLACEHOLDER_IMAGE;
-    };
-    e.currentTarget.src = fallbackImage;
-  } else {
-    e.currentTarget.src = NEUTRAL_PLACEHOLDER_IMAGE;
-  }
+  // Use neutral placeholder SVG so different products never display identical category photos
+  e.currentTarget.src = fallbackImage || NEUTRAL_PLACEHOLDER_IMAGE;
 };

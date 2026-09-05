@@ -304,9 +304,8 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
         <div className="product-list" style={{ padding: '0 20px' }}>
           {newArrivals.map(product => {
             const activeIdx = carouselIndices[product._id] || 0;
-            const images = product.images && product.images.length > 0 
-              ? product.images 
-              : ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500'];
+            const rawImages = (product.images || []).filter(img => typeof img === 'string' && img.trim() !== '');
+            const images = rawImages.length > 0 ? rawImages : [''];
 
             const hasDiscount = product.discount > 0;
             const originalPrice = hasDiscount 
