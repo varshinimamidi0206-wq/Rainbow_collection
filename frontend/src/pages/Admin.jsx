@@ -109,10 +109,13 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     setErrorMsg('');
     setLoginLoading(true);
 
+    const cleanEmail = (email || '').trim();
+    const cleanPassword = (password || '').trim();
+
     fetch(`${apiBaseUrl}/auth/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
     })
       .then(async res => {
         if (!res.ok) {

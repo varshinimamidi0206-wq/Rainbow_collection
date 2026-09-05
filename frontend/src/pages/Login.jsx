@@ -163,14 +163,20 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
     setInfoMsg('');
     setLoginLoading(true);
 
+    const cleanEmail = (email || '').trim();
+    const cleanPassword = (password || '').trim();
+
     if (isRegister) {
       // Sign Up Flow
-      if (!name || !email || !password) {
+      const cleanName = (name || '').trim();
+      const cleanConfirm = (confirmPassword || '').trim();
+
+      if (!cleanName || !cleanEmail || !cleanPassword) {
         setErrorMsg('Please fill in all fields');
         setLoginLoading(false);
         return;
       }
-      if (password !== confirmPassword) {
+      if (cleanPassword !== cleanConfirm) {
         setErrorMsg('Passwords do not match');
         setLoginLoading(false);
         return;
@@ -179,7 +185,7 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
       fetch(`${apiBaseUrl}/auth/customer/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name: cleanName, email: cleanEmail, password: cleanPassword })
       })
         .then(async res => {
           const data = await res.json();
@@ -203,7 +209,7 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
         });
     } else {
       // Sign In Flow
-      if (!email || !password) {
+      if (!cleanEmail || !cleanPassword) {
         setErrorMsg('Please enter both email and password');
         setLoginLoading(false);
         return;
@@ -212,7 +218,7 @@ export default function Login({ setUser, setToken, setView, apiBaseUrl }) {
       fetch(`${apiBaseUrl}/auth/customer/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
       })
         .then(async res => {
           const data = await res.json();
