@@ -21,6 +21,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadingSlots, setUploadingSlots] = useState({ 0: false, 1: false, 2: false });
+  const [colUploading, setColUploading] = useState(false);
 
   // Product form state
   const [editProduct, setEditProduct] = useState(null); // if null, adding new
@@ -339,6 +340,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     setColForm({
       name: '',
       image: '',
+      coverImage: '',
       description: '',
       displayOrder: '',
       isActive: true
@@ -349,9 +351,11 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   // Open modal for editing collection
   const openColEditModal = (col) => {
     setEditCollection(col);
+    const initialImg = col.coverImage || col.image || '';
     setColForm({
       name: col.name,
-      image: col.image || '',
+      image: initialImg,
+      coverImage: initialImg,
       description: col.description || '',
       displayOrder: col.displayOrder || '',
       isActive: col.isActive !== undefined ? col.isActive : true
@@ -367,14 +371,19 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
       return;
     }
 
+    const finalImage = (colForm.coverImage || colForm.image || '').trim();
     const payload = {
       ...colForm,
+      image: finalImage,
+      coverImage: finalImage,
+      description: (colForm.description || '').trim(),
       displayOrder: Number(colForm.displayOrder || 0)
     };
 
+    const colId = editCollection ? (editCollection._id || editCollection.id) : null;
     const method = editCollection ? 'PUT' : 'POST';
     const url = editCollection 
-      ? `${apiBaseUrl}/collections/${editCollection._id}`
+      ? `${apiBaseUrl}/collections/${colId}`
       : `${apiBaseUrl}/collections`;
 
     fetch(url, {
@@ -385,12 +394,14 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
       },
       body: JSON.stringify(payload)
     })
-      .then(res => {
+      .then(async res => {
         if (res.ok) {
+          console.log(`[Rainbow Admin] Collection "${colForm.name}" saved with cover image: "${finalImage}"`);
           setShowColModal(false);
           fetchDashboardData();
         } else {
-          alert('Error saving collection');
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.message || 'Error saving collection');
         }
       })
       .catch(err => console.error(err));
@@ -518,22 +529,43 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   // File Uploader logic (handles collection images)
   const handleColFileUpload = (e) => {
     const file = e.target.files[0];
+    e.target.value = '';
     if (!file) return;
 
+    setColUploading(true);
     const formData = new FormData();
+    formData.append('productCode', colForm.name ? `col_${colForm.name}` : 'collection');
     formData.append('files', file);
 
     fetch(`${apiBaseUrl}/upload`, {
       method: 'POST',
       body: formData
     })
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Upload failed with status ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.urls && data.urls.length > 0) {
-          setColForm(prev => ({ ...prev, image: data.urls[0] }));
+          const uploadedUrl = data.urls[0];
+          console.log(`[Rainbow Admin] Collection "${colForm.name || 'N/A'}" | New Cover Image: "${uploadedUrl}"`);
+          setColForm(prev => ({
+            ...prev,
+            image: uploadedUrl,
+            coverImage: uploadedUrl
+          }));
         }
       })
-      .catch(err => alert('File upload failed'));
+      .catch(err => {
+        console.error('[Rainbow Admin] Collection image upload failed:', err);
+        alert(`Collection image upload failed: ${err.message}`);
+      })
+      .finally(() => {
+        setColUploading(false);
+      });
   };
 
   // Calculate Metrics
@@ -808,7 +840,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                   <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No collections created yet.</p>
                 ) : (
                   collections.map(col => {
-                    const finalImg = resolveImageUrl(col.image, col.name);
+                    const finalImg = resolveImageUrl(col.coverImage || col.image, col.name);
                     
                     return (
                       <div key={col._id} className="cart-item" style={{ background: '#FFF', display: 'flex', alignItems: 'center' }}>
@@ -1097,16 +1129,15 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                 </select>
               </div>
 
-              {/* Description */}
+              {/* Description (Optional) */}
               <div className="form-group">
-                <label className="form-label">Product Description (1 Simple Line) *</label>
+                <label className="form-label">Product Description (Optional)</label>
                 <input 
                   type="text" 
                   className="form-input" 
                   value={prodForm.description} 
                   onChange={e => setProdForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="e.g. Beautiful Daily Wear Earrings"
-                  required 
                 />
               </div>
 
@@ -1474,14 +1505,14 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
 
               {/* Collection Icon/Image */}
               <div className="form-group">
-                <label className="form-label">Collection Icon (Emoji or Image URL / Upload)</label>
+                <label className="form-label">Collection Cover Image / Icon (Emoji or Image URL / Upload)</label>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input 
                     type="text" 
                     className="form-input" 
                     style={{ flex: 1 }}
-                    value={colForm.image} 
-                    onChange={e => setColForm(prev => ({ ...prev, image: e.target.value }))}
+                    value={colForm.coverImage || colForm.image || ''} 
+                    onChange={e => setColForm(prev => ({ ...prev, image: e.target.value, coverImage: e.target.value }))}
                     placeholder="e.g. 💍 or https://example.com/image.jpg" 
                   />
                   <label style={{
@@ -1489,20 +1520,46 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                     background: 'var(--light-pink)',
                     borderRadius: '12px',
                     color: 'var(--primary-pink)',
-                    cursor: 'pointer',
+                    cursor: colUploading ? 'wait' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    opacity: colUploading ? 0.7 : 1
                   }}>
                     <Upload size={16} />
                     <input 
                       type="file" 
                       accept="image/*" 
+                      disabled={colUploading}
                       style={{ display: 'none' }}
                       onChange={handleColFileUpload}
                     />
                   </label>
                 </div>
+                {colUploading && (
+                  <div style={{ fontSize: '12px', color: 'var(--primary-pink)', fontWeight: '600', marginTop: '4px' }}>
+                    Uploading collection cover image...
+                  </div>
+                )}
+                {/* Cover Image Preview */}
+                {(colForm.coverImage || colForm.image) && resolveImageUrl(colForm.coverImage || colForm.image, colForm.name) && (
+                  <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', background: '#FFF9F0', borderRadius: '10px', border: '1px dashed var(--border-color)' }}>
+                    <div style={{ width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', background: '#FFF', border: '1px solid var(--border-color)', flexShrink: 0 }}>
+                      <img 
+                        src={resolveImageUrl(colForm.coverImage || colForm.image, colForm.name)} 
+                        alt="Collection Preview" 
+                        onError={(e) => handleImageError(e, colForm.name)}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2px' }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      <strong>Cover Image Preview</strong>
+                      <div style={{ fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '260px', whiteSpace: 'nowrap' }}>
+                        {colForm.coverImage || colForm.image}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Optional Description */}

@@ -219,7 +219,7 @@ export default function Collections({
         ) : (
           <div className="category-grid">
             {collections.map(cat => {
-              const resolvedImg = resolveImageUrl(cat.image, cat.name);
+              const resolvedImg = resolveImageUrl(cat.coverImage || cat.image, cat.name);
               return (
                 <div 
                   key={cat._id || cat.id} 
@@ -259,7 +259,7 @@ export default function Collections({
   );
   const isMongoId = /^[0-9a-fA-F]{24}$/.test(selectedCategory || '');
   const selectedCollName = selectedColl ? selectedColl.name : (isMongoId ? 'Collection' : selectedCategory);
-  const resolvedSelectedCollImg = resolveImageUrl(selectedColl ? selectedColl.image : '', selectedCollName);
+  const resolvedSelectedCollImg = resolveImageUrl(selectedColl ? (selectedColl.coverImage || selectedColl.image) : '', selectedCollName);
 
   // 2. Render Products View within Category
   return (
@@ -431,19 +431,21 @@ export default function Collections({
                     Code: {product.code || 'N/A'}
                   </div>
 
-                  <p 
-                    style={{ 
-                      fontSize: '11px', 
-                      color: 'var(--text-muted)', 
-                      margin: '0 0 6px 0', 
-                      lineHeight: '1.3',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    {product.description || 'Premium fashion jewellery'}
-                  </p>
+                  {product.description && product.description.trim() !== '' && (
+                    <p 
+                      style={{ 
+                        fontSize: '11px', 
+                        color: 'var(--text-muted)', 
+                        margin: '0 0 6px 0', 
+                        lineHeight: '1.3',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {product.description}
+                    </p>
+                  )}
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
                     <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--primary-pink)' }}>
@@ -650,9 +652,11 @@ export default function Collections({
               <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '12px' }}>
                 Product Code: <span style={{ color: 'var(--primary-pink)' }}>{selectedProduct.code || 'N/A'}</span>
               </div>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
-                {selectedProduct.description}
-              </p>
+              {selectedProduct.description && selectedProduct.description.trim() !== '' && (
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
+                  {selectedProduct.description}
+                </p>
+              )}
 
               {/* Pricing */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>

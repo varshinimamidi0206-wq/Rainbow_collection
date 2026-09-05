@@ -253,7 +253,7 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
       ) : (
         <div className="horizontal-scroll-container hide-scrollbar">
           {collections.map(col => {
-            const resolvedImg = resolveImageUrl(col.image, col.name);
+            const resolvedImg = resolveImageUrl(col.coverImage || col.image, col.name);
             return (
               <div 
                 key={col._id || col.id} 
@@ -409,9 +409,11 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
                   </div>
 
                   {/* One short description */}
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 8px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {product.description || `Beautiful ${product.name}`}
-                  </p>
+                  {product.description && product.description.trim() !== '' && (
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 8px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {product.description}
+                    </p>
+                  )}
 
                   <div className="price-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                     <span className="current-price" style={{ fontSize: '16px', fontWeight: '700' }}>₹{product.price}</span>
@@ -605,9 +607,11 @@ export default function Home({ setView, setSelectedCategory, addToCart, triggerB
               <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '12px' }}>
                 Product Code: <span style={{ color: 'var(--primary-pink)' }}>{selectedProduct.code || 'N/A'}</span>
               </div>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
-                {selectedProduct.description}
-              </p>
+              {selectedProduct.description && selectedProduct.description.trim() !== '' && (
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
+                  {selectedProduct.description}
+                </p>
+              )}
 
               {/* Pricing */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>

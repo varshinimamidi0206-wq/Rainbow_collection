@@ -573,9 +573,11 @@ export default function App() {
                   <h3 style={{ fontFamily: 'Quicksand', fontSize: '20px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '6px' }}>
                     {searchResult.name}
                   </h3>
-                  <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
-                    {searchResult.description}
-                  </p>
+                  {searchResult.description && searchResult.description.trim() !== '' && (
+                    <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
+                      {searchResult.description}
+                    </p>
+                  )}
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
                     <span style={{ fontSize: '22px', fontWeight: '800', color: 'var(--primary-pink)' }}>

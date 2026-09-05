@@ -576,13 +576,16 @@ router.get('/collections/:id', async (req, res) => {
 // Add new collection (Admin only)
 router.post('/collections', authenticateToken(['admin']), async (req, res) => {
   try {
-    const { name, image, description, displayOrder, isActive } = req.body;
+    const { name, image, coverImage, description, displayOrder, isActive } = req.body;
     if (!name) return res.status(400).json({ message: 'Collection name is required' });
+
+    const finalImage = (coverImage || image || '').trim();
 
     const collection = await db.collections.create({
       name,
-      image: image || '',
-      description: description || '',
+      image: finalImage,
+      coverImage: finalImage,
+      description: (description || '').trim(),
       displayOrder: Number(displayOrder || 0),
       isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
     });
@@ -595,16 +598,20 @@ router.post('/collections', authenticateToken(['admin']), async (req, res) => {
 // Edit collection (Admin only)
 router.put('/collections/:id', authenticateToken(['admin']), async (req, res) => {
   try {
-    const { name, image, description, displayOrder, isActive } = req.body;
+    const { name, image, coverImage, description, displayOrder, isActive } = req.body;
     if (!name) return res.status(400).json({ message: 'Collection name is required' });
+
+    const finalImage = (coverImage || image || '').trim();
+    console.log(`[Collection Update] ID: "${req.params.id}", Name: "${name}", Cover Image: "${finalImage}"`);
 
     const updated = await db.collections.findByIdAndUpdate(req.params.id, {
       name,
-      image: image || '',
-      description: description || '',
+      image: finalImage,
+      coverImage: finalImage,
+      description: (description || '').trim(),
       displayOrder: Number(displayOrder || 0),
       isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
-    });
+    }, { new: true });
 
     if (!updated) return res.status(404).json({ message: 'Collection not found' });
     res.json(updated);
@@ -742,7 +749,7 @@ router.post('/products', authenticateToken(['admin']), async (req, res) => {
       name,
       code: normalizedCode,
       category: resolvedCategory,
-      description: description || `Beautiful ${name}`,
+      description: (description || '').trim(),
       price: Number(price),
       discount: Number(discount || 0),
       images: parsedImages,
@@ -797,7 +804,7 @@ router.put('/products/:id', authenticateToken(['admin']), async (req, res) => {
       name,
       code: normalizedCode,
       category: resolvedCategory,
-      description,
+      description: (description || '').trim(),
       price: Number(price),
       discount: Number(discount || 0),
       images: parsedImages,

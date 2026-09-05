@@ -115,6 +115,7 @@ if (useMongoDB) {
     const CollectionSchema = new mongoose.Schema({
       name: String,
       image: String,
+      coverImage: String,
       description: String,
       displayOrder: { type: Number, default: 0 },
       isActive: { type: Boolean, default: true },
