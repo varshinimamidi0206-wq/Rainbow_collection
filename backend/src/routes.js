@@ -50,6 +50,28 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Multer storage for collection cover images (Guaranteed unique storage key per Step 5)
+const collectionStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const colId = (req.params && req.params.id) || 'col';
+    const rawName = (req.body && req.body.name) || 'collection';
+    const cleanName = rawName.toString().replace(/[^a-zA-Z0-9_-]/g, '').trim() || 'collection';
+    const uniqueSuffix = Date.now() + '_' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `collection-${cleanName}-${colId}-${uniqueSuffix}${ext}`);
+  }
+});
+const collectionUpload = multer({ storage: collectionStorage });
+const handleCollectionUpload = collectionUpload.fields([
+  { name: 'coverImage', maxCount: 1 },
+  { name: 'image', maxCount: 1 },
+  { name: 'file', maxCount: 1 },
+  { name: 'files', maxCount: 1 }
+]);
+
 // Configure Cloudinary if credentials exist
 const isCloudinaryConfigured = 
   process.env.CLOUDINARY_CLOUD_NAME && 
@@ -556,6 +578,8 @@ router.get('/collections', async (req, res) => {
     }
     // Sort by displayOrder ascending
     collections.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    // Ensure browsers do not cache collection data to avoid stale cover images (Step 8/9)
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(collections);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -573,21 +597,57 @@ router.get('/collections/:id', async (req, res) => {
   }
 });
 
-// Add new collection (Admin only)
-router.post('/collections', authenticateToken(['admin']), async (req, res) => {
+// Add new collection (Admin only - supports multipart file upload & JSON)
+router.post('/collections', authenticateToken(['admin']), handleCollectionUpload, async (req, res) => {
   try {
-    const { name, image, coverImage, description, displayOrder, isActive } = req.body;
+    const name = (req.body.name || '').trim();
     if (!name) return res.status(400).json({ message: 'Collection name is required' });
 
-    const finalImage = (coverImage || image || '').trim();
+    // Step 4 & 7: Check if a new file was uploaded
+    const uploadedFile = (req.files && (
+      req.files['coverImage']?.[0] || 
+      req.files['image']?.[0] || 
+      req.files['file']?.[0] || 
+      req.files['files']?.[0]
+    )) || req.file;
+
+    let finalImage = '';
+
+    if (uploadedFile) {
+      console.log(`[Collection Create] Received cover image file: "${uploadedFile.originalname}" (${uploadedFile.size} bytes) -> stored as "${uploadedFile.filename}"`);
+      if (isCloudinaryConfigured) {
+        const result = await cloudinary.uploader.upload(uploadedFile.path, {
+          resource_type: 'auto',
+          folder: 'rainbow_jewellers/collections'
+        });
+        finalImage = result.secure_url;
+        try { fs.unlinkSync(uploadedFile.path); } catch (e) {}
+      } else {
+        try {
+          const fileBuffer = fs.readFileSync(uploadedFile.path);
+          await db.images.create({
+            filename: uploadedFile.filename,
+            originalName: uploadedFile.originalname,
+            mimeType: uploadedFile.mimetype || 'image/jpeg',
+            data: fileBuffer.toString('base64'),
+            size: uploadedFile.size
+          });
+        } catch (dbErr) {
+          console.error('[Collection Create] Warning: Failed to persist to db.images:', dbErr.message);
+        }
+        finalImage = `/uploads/${uploadedFile.filename}`;
+      }
+    } else {
+      finalImage = (req.body.coverImage || req.body.image || '').trim();
+    }
 
     const collection = await db.collections.create({
       name,
       image: finalImage,
       coverImage: finalImage,
-      description: (description || '').trim(),
-      displayOrder: Number(displayOrder || 0),
-      isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
+      description: (req.body.description || '').trim(),
+      displayOrder: Number(req.body.displayOrder || 0),
+      isActive: req.body.isActive !== undefined ? (req.body.isActive === 'true' || req.body.isActive === true) : true
     });
     res.status(201).json(collection);
   } catch (error) {
@@ -595,27 +655,81 @@ router.post('/collections', authenticateToken(['admin']), async (req, res) => {
   }
 });
 
-// Edit collection (Admin only)
-router.put('/collections/:id', authenticateToken(['admin']), async (req, res) => {
+// Edit collection (Admin only - supports multipart file upload & JSON)
+router.put('/collections/:id', authenticateToken(['admin']), handleCollectionUpload, async (req, res) => {
   try {
-    const { name, image, coverImage, description, displayOrder, isActive } = req.body;
+    const existing = await db.collections.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Collection not found' });
+
+    // Step 4 & 7: Check if a new file was uploaded
+    const uploadedFile = (req.files && (
+      req.files['coverImage']?.[0] || 
+      req.files['image']?.[0] || 
+      req.files['file']?.[0] || 
+      req.files['files']?.[0]
+    )) || req.file;
+
+    let finalImage = '';
+
+    if (uploadedFile) {
+      console.log(`[Collection Update] Received NEW cover image file: "${uploadedFile.originalname}" (${uploadedFile.size} bytes) -> stored as "${uploadedFile.filename}"`);
+
+      if (isCloudinaryConfigured) {
+        const result = await cloudinary.uploader.upload(uploadedFile.path, {
+          resource_type: 'auto',
+          folder: 'rainbow_jewellers/collections'
+        });
+        finalImage = result.secure_url;
+        try { fs.unlinkSync(uploadedFile.path); } catch (e) {}
+        console.log(`[Collection Update] Cloudinary upload complete: ${finalImage}`);
+      } else {
+        try {
+          const fileBuffer = fs.readFileSync(uploadedFile.path);
+          await db.images.create({
+            filename: uploadedFile.filename,
+            originalName: uploadedFile.originalname,
+            mimeType: uploadedFile.mimetype || 'image/jpeg',
+            data: fileBuffer.toString('base64'),
+            size: uploadedFile.size
+          });
+          console.log(`[Collection Update] Persisted image "${uploadedFile.filename}" to MongoDB image store.`);
+        } catch (dbErr) {
+          console.error('[Collection Update] Warning: Failed to persist to db.images:', dbErr.message);
+        }
+        finalImage = `/uploads/${uploadedFile.filename}`;
+        console.log(`[Collection Update] Saved local URL: ${finalImage}`);
+      }
+    } else {
+      // Priority per Step 7: Only if NO new image was uploaded, check body or keep existing
+      const bodyImg = (req.body.coverImage || req.body.image || '').trim();
+      finalImage = bodyImg || existing.coverImage || existing.image || '';
+    }
+
+    const name = (req.body.name || existing.name || '').trim();
     if (!name) return res.status(400).json({ message: 'Collection name is required' });
 
-    const finalImage = (coverImage || image || '').trim();
-    console.log(`[Collection Update] ID: "${req.params.id}", Name: "${name}", Cover Image: "${finalImage}"`);
+    const description = req.body.description !== undefined ? req.body.description.trim() : (existing.description || '');
+    const displayOrder = req.body.displayOrder !== undefined ? Number(req.body.displayOrder) : (existing.displayOrder || 0);
+    const isActive = req.body.isActive !== undefined ? (req.body.isActive === 'true' || req.body.isActive === true) : existing.isActive;
 
-    const updated = await db.collections.findByIdAndUpdate(req.params.id, {
-      name,
-      image: finalImage,
-      coverImage: finalImage,
-      description: (description || '').trim(),
-      displayOrder: Number(displayOrder || 0),
-      isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true
-    }, { new: true });
+    console.log(`[Collection Update] Updating MongoDB: ID="${req.params.id}", Name="${name}", coverImage="${finalImage}"`);
 
-    if (!updated) return res.status(404).json({ message: 'Collection not found' });
+    const updated = await db.collections.findByIdAndUpdate(
+      req.params.id,
+      {
+        name,
+        image: finalImage,
+        coverImage: finalImage,
+        description,
+        displayOrder,
+        isActive
+      },
+      { new: true }
+    );
+
     res.json(updated);
   } catch (error) {
+    console.error('[Collection Update Error]', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -937,8 +1051,8 @@ router.delete('/banners/:id', authenticateToken(['admin']), async (req, res) => 
    FILE UPLOAD ROUTE
    ========================================================================== */
 
-// Route to upload up to 3 files or a single video
-router.post('/upload', upload.array('files', 3), async (req, res) => {
+// Route to upload up to 3 files or a single video (accepts any field name per Step 3)
+router.post('/upload', upload.any(), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
