@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plus, Trash2, Edit, CheckCircle, Package, ShoppingBag, DollarSign, Users, X, Upload, Camera, BarChart2, PlusCircle, ShoppingCart } from 'lucide-react';
+import { LogOut, Plus, Trash2, Edit, CheckCircle, Package, ShoppingBag, DollarSign, Users, X, Upload, Camera, BarChart2, PlusCircle, ShoppingCart, Lock, Eye, EyeOff } from 'lucide-react';
 import { resolveImageUrl, handleImageError } from '../utils/imageUrl';
 
 const AVAILABLE_SIZES = ['2.2', '2.4', '2.6', '2.8'];
@@ -24,6 +24,17 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   const [colUploading, setColUploading] = useState(false);
   const [selectedColFile, setSelectedColFile] = useState(null);
   const [colPreviewUrl, setColPreviewUrl] = useState('');
+
+  // Change password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   // Product form state
   const [editProduct, setEditProduct] = useState(null); // if null, adding new
@@ -463,6 +474,60 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     }
   };
 
+  // Handle Admin Change Password
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwError('');
+    setPwSuccess('');
+
+    if (!currentPassword) {
+      setPwError('Current password is required.');
+      return;
+    }
+    if (!newPassword) {
+      setPwError('New password is required.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPwError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError('New passwords do not match.');
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/auth/admin/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setPwError(data.message || 'Failed to change password.');
+      } else {
+        setPwSuccess(data.message || 'Password changed successfully.');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch (err) {
+      setPwError('Network error. Please try again.');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
   // Size/Color toggles in form
   const toggleSizeSelection = (size) => {
     const active = prodForm.sizes.includes(size);
@@ -641,9 +706,28 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
       {/* Admin header */}
       <div className="admin-header">
         <div className="admin-title">🌈 Rainbow Admin</div>
-        <button onClick={handleLogout} className="admin-logout">
-          Logout <LogOut size={11} style={{ display: 'inline', marginLeft: '4px' }} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button 
+            onClick={() => {
+              setPwError('');
+              setPwSuccess('');
+              setActiveTab('change-password');
+            }} 
+            className="admin-logout"
+            style={{ 
+              background: activeTab === 'change-password' ? 'var(--primary-pink)' : '#FFF', 
+              color: activeTab === 'change-password' ? '#FFF' : 'var(--primary-pink)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Lock size={12} /> Change Password
+          </button>
+          <button onClick={handleLogout} className="admin-logout">
+            Logout <LogOut size={11} style={{ display: 'inline', marginLeft: '4px' }} />
+          </button>
+        </div>
       </div>
 
       {/* Primary Navigation Tabs */}
@@ -782,6 +866,188 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                   <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>Update homepage promotional carousel slides.</p>
                 </div>
                 <div style={{ fontSize: '18px', color: 'var(--accent-gold)' }}>→</div>
+              </div>
+
+              <div 
+                onClick={() => {
+                  setPwError('');
+                  setPwSuccess('');
+                  setActiveTab('change-password');
+                }}
+                style={{ 
+                  background: 'var(--white)', 
+                  border: '1.5px solid var(--border-color)', 
+                  borderRadius: 'var(--radius-md)', 
+                  padding: '20px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                  cursor: 'pointer',
+                  transition: 'var(--transition)'
+                }}
+              >
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--light-pink)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-pink)' }}>
+                  <Lock size={24} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ fontFamily: 'Quicksand', fontSize: '16px', fontWeight: '700', color: 'var(--primary-pink)', marginBottom: '2px' }}>Change Password</h4>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>Update your admin credentials securely.</p>
+                </div>
+                <div style={{ fontSize: '18px', color: 'var(--accent-gold)' }}>→</div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CHANGE PASSWORD */}
+          {activeTab === 'change-password' && (
+            <div style={{ padding: '24px 20px', maxWidth: '460px', margin: '0 auto' }}>
+              <div style={{ 
+                background: 'var(--white)', 
+                borderRadius: 'var(--radius-lg)', 
+                padding: '28px 24px', 
+                boxShadow: 'var(--shadow-sm)',
+                border: '1.5px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--light-pink)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-pink)' }}>
+                      <Lock size={18} />
+                    </div>
+                    <h3 style={{ fontFamily: 'Quicksand', fontSize: '18px', fontWeight: '700', color: 'var(--primary-pink)', margin: 0 }}>
+                      Change Password
+                    </h3>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('dashboard')} 
+                    className="close-btn"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    title="Back to Dashboard"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {pwError && (
+                  <div style={{ 
+                    background: '#FFF0F0', 
+                    border: '1px solid #FFD0D0', 
+                    color: '#D62E4E', 
+                    borderRadius: '8px', 
+                    padding: '10px 14px', 
+                    fontSize: '13px', 
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>⚠️</span> {pwError}
+                  </div>
+                )}
+
+                {pwSuccess && (
+                  <div style={{ 
+                    background: '#F0FFF4', 
+                    border: '1px solid #C6F6D5', 
+                    color: '#276749', 
+                    borderRadius: '8px', 
+                    padding: '10px 14px', 
+                    fontSize: '13px', 
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <CheckCircle size={16} /> {pwSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword}>
+                  {/* Current Password */}
+                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                    <label className="form-label" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>
+                      Current Password
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        type={showCurrentPw ? 'text' : 'password'}
+                        className="form-input"
+                        value={currentPassword}
+                        onChange={e => { setCurrentPassword(e.target.value); setPwError(''); }}
+                        placeholder="Enter current password"
+                        required
+                        style={{ width: '100%', paddingRight: '40px' }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowCurrentPw(prev => !prev)}
+                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                      >
+                        {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                    <label className="form-label" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>
+                      New Password <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(min. 8 characters)</span>
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        type={showNewPw ? 'text' : 'password'}
+                        className="form-input"
+                        value={newPassword}
+                        onChange={e => { setNewPassword(e.target.value); setPwError(''); }}
+                        placeholder="Enter new password"
+                        required
+                        minLength={8}
+                        style={{ width: '100%', paddingRight: '40px' }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowNewPw(prev => !prev)}
+                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                      >
+                        {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm New Password */}
+                  <div className="form-group" style={{ marginBottom: '22px' }}>
+                    <label className="form-label" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>
+                      Confirm New Password
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        type={showConfirmPw ? 'text' : 'password'}
+                        className="form-input"
+                        value={confirmPassword}
+                        onChange={e => { setConfirmPassword(e.target.value); setPwError(''); }}
+                        placeholder="Confirm new password"
+                        required
+                        style={{ width: '100%', paddingRight: '40px' }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowConfirmPw(prev => !prev)}
+                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                      >
+                        {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="btn-primary" 
+                    disabled={pwLoading}
+                    style={{ width: '100%', margin: 0, padding: '12px', fontWeight: '700' }}
+                  >
+                    {pwLoading ? 'Changing Password...' : 'Change Password'}
+                  </button>
+                </form>
               </div>
             </div>
           )}

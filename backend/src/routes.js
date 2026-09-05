@@ -14,8 +14,8 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretrainbowkey123';
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'varshinimamidi0206@gmail.com').toLowerCase().trim();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'rainbowcollections@gmail.com').toLowerCase().trim();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'rainbow@123';
 
 // Google OAuth Configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
@@ -553,6 +553,57 @@ router.post('/auth/admin/login', async (req, res) => {
       }
     });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Admin Change Password
+router.put('/auth/admin/change-password', authenticateToken(['admin']), async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword) {
+      return res.status(400).json({ message: 'Current password is required.' });
+    }
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters.' });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'New passwords do not match.' });
+    }
+
+    // Determine admin strictly from verified token
+    const adminId = req.user.id || req.user._id;
+    const adminUser = await db.customers.findById(adminId);
+
+    if (!adminUser || adminUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Unauthorized: Admin account not found.' });
+    }
+
+    // Verify current password against securely hashed password in MongoDB
+    const isMatch = await bcryptjs.compare(currentPassword, adminUser.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect.' });
+    }
+
+    // Hash new password using bcrypt
+    const salt = await bcryptjs.genSalt(10);
+    const hashedPassword = await bcryptjs.hash(newPassword, salt);
+
+    // Update in MongoDB
+    await db.customers.findByIdAndUpdate(adminUser._id, {
+      password: hashedPassword
+    });
+
+    console.log(`[Admin Auth] Password changed successfully for admin: ${adminUser.email}`);
+
+    // Return only success message - never return password or hash
+    res.json({ message: 'Password changed successfully.' });
+  } catch (error) {
+    console.error('[Admin Change Password Error]', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -1342,18 +1393,42 @@ export const seedDatabase = async () => {
     }
   }
 
-  // 5. Seed initial admin and test customer if db is empty
-  const adminUser = await db.customers.findOne({ email: ADMIN_EMAIL });
-  if (!adminUser) {
-    const salt = await bcryptjs.genSalt(10);
-    const hashedPassword = await bcryptjs.hash(ADMIN_PASSWORD, salt);
-    await db.customers.create({
-      name: 'Admin',
-      email: ADMIN_EMAIL,
-      password: hashedPassword,
-      role: 'admin'
-    });
-    console.log('Seeded admin user.');
+  // 5. Initialize or update admin account (Ensures exactly one admin account, no duplicates)
+  let adminUser = await db.customers.findOne({ role: 'admin' });
+  const salt = await bcryptjs.genSalt(10);
+  const hashedPassword = await bcryptjs.hash(ADMIN_PASSWORD, salt);
+
+  if (adminUser) {
+    // If the admin user has the old email, migrate to the new ADMIN_EMAIL
+    if (adminUser.email.toLowerCase() !== ADMIN_EMAIL) {
+      console.log(`[Admin Init] Migrating admin email from "${adminUser.email}" to "${ADMIN_EMAIL}"`);
+      await db.customers.findByIdAndUpdate(adminUser._id, {
+        email: ADMIN_EMAIL,
+        password: hashedPassword,
+        name: 'Admin',
+        role: 'admin'
+      });
+      console.log(`[Admin Init] Admin account successfully updated to "${ADMIN_EMAIL}".`);
+    }
+  } else {
+    // Check if an account with ADMIN_EMAIL already exists
+    const existingByEmail = await db.customers.findOne({ email: ADMIN_EMAIL });
+    if (existingByEmail) {
+      await db.customers.findByIdAndUpdate(existingByEmail._id, {
+        role: 'admin',
+        password: hashedPassword,
+        name: 'Admin'
+      });
+      console.log(`[Admin Init] Upgraded existing account "${ADMIN_EMAIL}" to admin.`);
+    } else {
+      await db.customers.create({
+        name: 'Admin',
+        email: ADMIN_EMAIL,
+        password: hashedPassword,
+        role: 'admin'
+      });
+      console.log(`[Admin Init] Created admin account "${ADMIN_EMAIL}".`);
+    }
   }
 
   const testCustomer = await db.customers.findOne({ email: 'customer@rainbow.com' });
