@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plus, Trash2, Edit, CheckCircle, Package, ShoppingBag, DollarSign, Users, X, Upload, Camera, BarChart2, PlusCircle, ShoppingCart, Lock, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Plus, Trash2, Edit, CheckCircle, Package, ShoppingBag, DollarSign, Users, X, Upload, Camera, BarChart2, PlusCircle, ShoppingCart, Lock, Eye, EyeOff, Menu } from 'lucide-react';
 import { resolveImageUrl, handleImageError } from '../utils/imageUrl';
 
 const AVAILABLE_SIZES = ['2.2', '2.4', '2.6', '2.8'];
@@ -11,6 +11,9 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+
+  // Mobile menu state
+  const [adminMobileMenuOpen, setAdminMobileMenuOpen] = useState(false);
 
   // Custom Colors List State
   const [customColorInput, setCustomColorInput] = useState('');
@@ -708,64 +711,283 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
     <div style={{ animation: 'fadeInUp 0.3s ease-out', background: 'var(--light-pink)', minHeight: 'calc(100vh - 68px)', paddingBottom: '40px' }}>
       {/* Admin header */}
       <div className="admin-header">
-        <div className="admin-title">🌈 Rainbow Admin</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Mobile Menu Toggle Button (Visible on mobile/tablet) */}
+          <button 
+            className="admin-mobile-menu-btn"
+            onClick={() => setAdminMobileMenuOpen(prev => !prev)}
+            aria-label="Toggle admin menu"
+            style={{
+              background: 'rgba(255, 255, 255, 0.15)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              color: '#FFF',
+              borderRadius: '8px',
+              padding: '6px 8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '36px',
+              minHeight: '36px'
+            }}
+          >
+            {adminMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <div className="admin-title">🌈 Rainbow Admin</div>
+        </div>
+
+        <div className="admin-header-actions">
           <button 
             onClick={() => {
               setPwError('');
               setPwSuccess('');
               setActiveTab('change-password');
+              setAdminMobileMenuOpen(false);
             }} 
-            className="admin-logout"
+            className="admin-change-pw-btn"
             style={{ 
               background: activeTab === 'change-password' ? 'var(--primary-pink)' : '#FFF', 
               color: activeTab === 'change-password' ? '#FFF' : 'var(--primary-pink)',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '5px'
             }}
           >
-            <Lock size={12} /> Change Password
+            <Lock size={13} /> <span>Change Password</span>
           </button>
-          <button onClick={handleLogout} className="admin-logout">
-            Logout <LogOut size={11} style={{ display: 'inline', marginLeft: '4px' }} />
+          <button onClick={handleLogout} className="admin-logout" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            Logout <LogOut size={12} />
           </button>
         </div>
       </div>
 
+      {/* Mobile Admin Navigation Menu Dropdown */}
+      {adminMobileMenuOpen && (
+        <div 
+          className="admin-mobile-menu-overlay"
+          style={{
+            background: 'var(--white)',
+            borderBottom: '2px solid var(--accent-gold)',
+            boxShadow: 'var(--shadow-md)',
+            padding: '12px 16px',
+            animation: 'fadeInDown 0.2s ease-out'
+          }}
+        >
+          <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', padding: '4px 8px' }}>
+            Admin Navigation
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <button 
+              onClick={() => { setActiveTab('dashboard'); setAdminMobileMenuOpen(false); }}
+              className={`admin-mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: '10px', border: 'none',
+                background: activeTab === 'dashboard' ? 'var(--light-pink)' : 'transparent',
+                color: activeTab === 'dashboard' ? 'var(--primary-pink)' : 'var(--text-dark)',
+                fontWeight: activeTab === 'dashboard' ? '700' : '600',
+                fontSize: '14px', cursor: 'pointer', textAlign: 'left', width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <BarChart2 size={18} color="var(--primary-pink)" /> Dashboard
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Overview</span>
+            </button>
+
+            <button 
+              onClick={() => { resetProductForm(); setActiveTab('products'); setAdminMobileMenuOpen(false); }}
+              className={`admin-mobile-nav-item ${activeTab === 'products' ? 'active' : ''}`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: '10px', border: 'none',
+                background: activeTab === 'products' ? 'var(--light-pink)' : 'transparent',
+                color: activeTab === 'products' ? 'var(--primary-pink)' : 'var(--text-dark)',
+                fontWeight: activeTab === 'products' ? '700' : '600',
+                fontSize: '14px', cursor: 'pointer', textAlign: 'left', width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShoppingBag size={18} color="var(--primary-pink)" /> Products ({totalProducts})
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Catalog</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('orders'); setAdminMobileMenuOpen(false); }}
+              className={`admin-mobile-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: '10px', border: 'none',
+                background: activeTab === 'orders' ? 'var(--light-pink)' : 'transparent',
+                color: activeTab === 'orders' ? 'var(--primary-pink)' : 'var(--text-dark)',
+                fontWeight: activeTab === 'orders' ? '700' : '600',
+                fontSize: '14px', cursor: 'pointer', textAlign: 'left', width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShoppingCart size={18} color="var(--primary-pink)" /> Orders ({totalOrders})
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tracking</span>
+            </button>
+
+            <button 
+              onClick={() => { openAddModal(); setAdminMobileMenuOpen(false); }}
+              className={`admin-mobile-nav-item ${activeTab === 'add-product' ? 'active' : ''}`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: '10px', border: 'none',
+                background: activeTab === 'add-product' ? 'var(--light-pink)' : 'transparent',
+                color: activeTab === 'add-product' ? 'var(--primary-pink)' : 'var(--text-dark)',
+                fontWeight: activeTab === 'add-product' ? '700' : '600',
+                fontSize: '14px', cursor: 'pointer', textAlign: 'left', width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <PlusCircle size={18} color="var(--primary-pink)" /> Add Product
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>New</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('collections'); setAdminMobileMenuOpen(false); }}
+              className={`admin-mobile-nav-item ${activeTab === 'collections' ? 'active' : ''}`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: '10px', border: 'none',
+                background: activeTab === 'collections' ? 'var(--light-pink)' : 'transparent',
+                color: activeTab === 'collections' ? 'var(--primary-pink)' : 'var(--text-dark)',
+                fontWeight: activeTab === 'collections' ? '700' : '600',
+                fontSize: '14px', cursor: 'pointer', textAlign: 'left', width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Package size={18} color="var(--primary-pink)" /> Collections ({totalCollections})
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Categories</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('banners'); setAdminMobileMenuOpen(false); }}
+              className={`admin-mobile-nav-item ${activeTab === 'banners' ? 'active' : ''}`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: '10px', border: 'none',
+                background: activeTab === 'banners' ? 'var(--light-pink)' : 'transparent',
+                color: activeTab === 'banners' ? 'var(--primary-pink)' : 'var(--text-dark)',
+                fontWeight: activeTab === 'banners' ? '700' : '600',
+                fontSize: '14px', cursor: 'pointer', textAlign: 'left', width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Camera size={18} color="var(--primary-pink)" /> Banners
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Promos</span>
+            </button>
+
+            {/* Change Password Highlighted Item in Mobile Menu */}
+            <div style={{ margin: '8px 0 4px 0', height: '1px', background: 'var(--border-color)' }}></div>
+
+            <button 
+              onClick={() => {
+                setPwError('');
+                setPwSuccess('');
+                setActiveTab('change-password');
+                setAdminMobileMenuOpen(false);
+              }}
+              className={`admin-mobile-nav-item ${activeTab === 'change-password' ? 'active' : ''}`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: '10px', border: '1.5px solid var(--accent-gold)',
+                background: activeTab === 'change-password' ? 'var(--primary-pink)' : 'var(--light-pink)',
+                color: activeTab === 'change-password' ? '#FFF' : 'var(--primary-pink)',
+                fontWeight: '700',
+                fontSize: '14px', cursor: 'pointer', textAlign: 'left', width: '100%',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Lock size={18} color={activeTab === 'change-password' ? '#FFF' : 'var(--primary-pink)'} /> Change Password
+              </div>
+              <span style={{ fontSize: '12px', opacity: 0.9 }}>Security 🔑</span>
+            </button>
+
+            <button 
+              onClick={handleLogout}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px', borderRadius: '10px', border: 'none',
+                background: '#FFF0F0',
+                color: '#D62E4E',
+                fontWeight: '700',
+                fontSize: '14px', cursor: 'pointer', textAlign: 'left', width: '100%',
+                marginTop: '4px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <LogOut size={18} /> Logout
+              </div>
+              <span style={{ fontSize: '12px' }}>Exit</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Primary Navigation Tabs */}
-      <div className="admin-tabs" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', background: '#FFF' }}>
+      <div 
+        className="admin-tabs" 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(5, 1fr)', 
+          background: '#FFF',
+          borderBottom: '1px solid var(--border-color)',
+          overflowX: 'auto'
+        }}
+      >
         <button 
           className={`admin-tab ${activeTab === 'dashboard' || activeTab === 'collections' || activeTab === 'banners' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 0', minHeight: '60px' }}
+          onClick={() => { setActiveTab('dashboard'); setAdminMobileMenuOpen(false); }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 2px', minHeight: '60px' }}
         >
           <BarChart2 size={18} />
           <span style={{ fontSize: '11px', fontWeight: '800' }}>Dashboard</span>
         </button>
         <button 
           className={`admin-tab ${activeTab === 'products' ? 'active' : ''}`}
-          onClick={() => { resetProductForm(); setActiveTab('products'); }}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 0', minHeight: '60px' }}
+          onClick={() => { resetProductForm(); setActiveTab('products'); setAdminMobileMenuOpen(false); }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 2px', minHeight: '60px' }}
         >
           <ShoppingBag size={18} />
           <span style={{ fontSize: '11px', fontWeight: '800' }}>Catalog</span>
         </button>
         <button 
           className={`admin-tab ${activeTab === 'add-product' || activeTab === 'edit-product' ? 'active' : ''}`}
-          onClick={openAddModal}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 0', minHeight: '60px' }}
+          onClick={() => { openAddModal(); setAdminMobileMenuOpen(false); }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 2px', minHeight: '60px' }}
         >
           <PlusCircle size={18} />
-          <span style={{ fontSize: '11px', fontWeight: '800' }}>Add Product</span>
+          <span style={{ fontSize: '11px', fontWeight: '800' }}>Add Item</span>
         </button>
         <button 
           className={`admin-tab ${activeTab === 'orders' ? 'active' : ''}`}
-          onClick={() => setActiveTab('orders')}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 0', minHeight: '60px' }}
+          onClick={() => { setActiveTab('orders'); setAdminMobileMenuOpen(false); }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 2px', minHeight: '60px' }}
         >
           <ShoppingCart size={18} />
-          <span style={{ fontSize: '11px', fontWeight: '800' }}>Orders ({totalOrders})</span>
+          <span style={{ fontSize: '11px', fontWeight: '800' }}>Orders</span>
+        </button>
+        <button 
+          className={`admin-tab ${activeTab === 'change-password' ? 'active' : ''}`}
+          onClick={() => {
+            setPwError('');
+            setPwSuccess('');
+            setActiveTab('change-password');
+            setAdminMobileMenuOpen(false);
+          }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '60px', padding: '6px 2px', minHeight: '60px' }}
+        >
+          <Lock size={18} />
+          <span style={{ fontSize: '11px', fontWeight: '800' }}>Password</span>
         </button>
       </div>
 
@@ -904,14 +1126,8 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
 
           {/* TAB: CHANGE PASSWORD */}
           {activeTab === 'change-password' && (
-            <div style={{ padding: '24px 20px', maxWidth: '460px', margin: '0 auto' }}>
-              <div style={{ 
-                background: 'var(--white)', 
-                borderRadius: 'var(--radius-lg)', 
-                padding: '28px 24px', 
-                boxShadow: 'var(--shadow-sm)',
-                border: '1.5px solid var(--border-color)'
-              }}>
+            <div className="admin-change-pw-container">
+              <div className="admin-change-pw-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--light-pink)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-pink)' }}>
@@ -924,10 +1140,10 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                   <button 
                     onClick={() => setActiveTab('dashboard')} 
                     className="close-btn"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px' }}
                     title="Back to Dashboard"
                   >
-                    <X size={18} />
+                    <X size={20} />
                   </button>
                 </div>
 
@@ -942,7 +1158,8 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                     marginBottom: '16px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    wordBreak: 'break-word'
                   }}>
                     <span>⚠️</span> {pwError}
                   </div>
@@ -959,7 +1176,8 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                     marginBottom: '16px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    wordBreak: 'break-word'
                   }}>
                     <CheckCircle size={16} /> {pwSuccess}
                   </div>
@@ -971,7 +1189,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                     <label className="form-label" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>
                       Current Password
                     </label>
-                    <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative', width: '100%' }}>
                       <input 
                         type={showCurrentPw ? 'text' : 'password'}
                         className="form-input"
@@ -979,14 +1197,15 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                         onChange={e => { setCurrentPassword(e.target.value); setPwError(''); }}
                         placeholder="Enter current password"
                         required
-                        style={{ width: '100%', paddingRight: '40px' }}
+                        style={{ width: '100%', paddingRight: '44px', fontSize: '15px', height: '46px', boxSizing: 'border-box' }}
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowCurrentPw(prev => !prev)}
-                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                        style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        aria-label="Toggle current password visibility"
                       >
-                        {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showCurrentPw ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
@@ -996,7 +1215,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                     <label className="form-label" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>
                       New Password <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(min. 8 characters)</span>
                     </label>
-                    <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative', width: '100%' }}>
                       <input 
                         type={showNewPw ? 'text' : 'password'}
                         className="form-input"
@@ -1005,14 +1224,15 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                         placeholder="Enter new password"
                         required
                         minLength={8}
-                        style={{ width: '100%', paddingRight: '40px' }}
+                        style={{ width: '100%', paddingRight: '44px', fontSize: '15px', height: '46px', boxSizing: 'border-box' }}
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowNewPw(prev => !prev)}
-                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                        style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        aria-label="Toggle new password visibility"
                       >
-                        {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showNewPw ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
@@ -1022,7 +1242,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                     <label className="form-label" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>
                       Confirm New Password
                     </label>
-                    <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative', width: '100%' }}>
                       <input 
                         type={showConfirmPw ? 'text' : 'password'}
                         className="form-input"
@@ -1030,14 +1250,15 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                         onChange={e => { setConfirmPassword(e.target.value); setPwError(''); }}
                         placeholder="Confirm new password"
                         required
-                        style={{ width: '100%', paddingRight: '40px' }}
+                        style={{ width: '100%', paddingRight: '44px', fontSize: '15px', height: '46px', boxSizing: 'border-box' }}
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowConfirmPw(prev => !prev)}
-                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                        style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        aria-label="Toggle confirm password visibility"
                       >
-                        {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showConfirmPw ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
@@ -1046,7 +1267,7 @@ export default function Admin({ user, setUser, token, setToken, setView, apiBase
                     type="submit" 
                     className="btn-primary" 
                     disabled={pwLoading}
-                    style={{ width: '100%', margin: 0, padding: '12px', fontWeight: '700' }}
+                    style={{ width: '100%', margin: 0, padding: '13px', fontWeight: '700', fontSize: '15px', borderRadius: 'var(--radius-md)', minHeight: '46px', cursor: 'pointer' }}
                   >
                     {pwLoading ? 'Changing Password...' : 'Change Password'}
                   </button>
